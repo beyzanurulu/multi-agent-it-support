@@ -21,6 +21,12 @@ dependencies = [
     "guardrails-ai>=0.11.0",
 ]
 
+[project.optional-dependencies]
+demo = [
+    "gradio>=6.30.0",
+    "httpx>=0.28.1",
+]
+
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
@@ -45,3 +51,6 @@ filterwarnings = ["ignore::DeprecationWarning:guardrails.*", "ignore::UserWarnin
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]

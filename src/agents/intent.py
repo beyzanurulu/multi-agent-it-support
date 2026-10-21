@@ -18,7 +18,7 @@ log = structlog.get_logger()
 INTENTS: dict[str, tuple[str, Severity, tuple[str, ...]]] = {
     "password_reset": (
         "account", "medium",
-        ("password", "şifre", "parola", "locked out", "hesap kilit", "reset", "sıfırla"),
+        ("password", "şifre", "parola", "locked out", "kilitlen", "hesab", "reset", "sıfırla"),
     ),
     "software_install": (
         "software", "low",
@@ -30,7 +30,7 @@ INTENTS: dict[str, tuple[str, Severity, tuple[str, ...]]] = {
     ),
     "hardware": (
         "hardware", "medium",
-        ("laptop", "printer", "yazıcı", "monitor", "ekran", "keyboard", "klavye", "mouse"),
+        ("laptop", "printer", "yazıcı", "monitor", "monitör", "ekran", "keyboard", "klavye", "mouse"),
     ),
     "email": (
         "email", "medium",
@@ -63,13 +63,19 @@ def _contains(text: str, words: tuple[str, ...]) -> bool:
     return any(re.search(rf"(?<!\w){re.escape(w)}", text) for w in words)
 
 
+def normalize(text: str) -> str:
+    # str.lower() turns Turkish "İ" into "i" + combining dot, which breaks matching.
+    return text.replace("İ", "i").lower()
+
+
 def classify_keywords(text: str) -> IntentResult:
-    lowered = text.lower()
+    lowered = normalize(text)
     scores = {
         name: sum(1 for w in kws if _contains(lowered, (w,)))
         for name, (_, _, kws) in INTENTS.items()
     }
-    best = max(scores, key=scores.get)
+    # Security signals always win: a phishing mail is a security incident, not an email issue.
+    best = "security_incident" if scores["security_incident"] else max(scores, key=scores.get)
     if scores[best] == 0:
         intent, category, severity = FALLBACK_INTENT, "general", "low"
     else:

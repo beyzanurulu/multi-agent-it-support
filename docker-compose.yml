@@ -1,0 +1,34 @@
+services:
+  api:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CHECKPOINT_DB: /data/checkpoints.sqlite
+      CHROMA_PATH: /data/chroma
+      API_KEYS: ${API_KEYS:-dev-key}
+    volumes:
+      - app-data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ui:
+    build: .
+    command: ["python", "-m", "src.ui.gradio_app"]
+    environment:
+      API_URL: http://api:8000
+      DEMO_API_KEY: ${API_KEYS:-dev-key}
+    ports:
+      - "7860:7860"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  app-data:
