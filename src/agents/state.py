@@ -5,7 +5,7 @@ from typing import Annotated, Literal, TypedDict
 from langgraph.graph.message import add_messages
 
 Severity = Literal["low", "medium", "high", "critical"]
-AgentName = Literal["supervisor", "triage", "solution", "ticket", "end"]
+AgentName = Literal["supervisor", "triage", "solution", "ticket", "human_approval", "end"]
 
 
 class AgentState(TypedDict, total=False):
@@ -28,6 +28,10 @@ class AgentState(TypedDict, total=False):
     ticket_id: str | None
     ticket_status: str
     escalated: bool
+
+    # Human-in-the-loop
+    approval_status: Literal["approved", "rejected"]
+    approval_note: str
 
     # Control
     current_agent: AgentName

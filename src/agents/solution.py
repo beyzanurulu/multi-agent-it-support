@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage
 from src.agents.state import AgentState
 from src.agents.triage import last_user_text
 from src.core.config import get_settings
+from src.guardrails.output_validator import validate_solution
 from src.tools.crm import SYSTEM_STATUS
 from src.tools.server import call_tool
 
@@ -86,6 +87,12 @@ async def solution_node(state: AgentState) -> dict:
                 answer = _llm_answer(question, relevant)
             except Exception as exc:  # noqa: BLE001 - keep the retrieval answer
                 log.warning("solution.llm_failed", error=str(exc))
+
+    if answer:
+        valid, reason = validate_solution(answer)
+        if not valid:
+            log.warning("solution.guardrail_blocked", reason=reason)
+            answer = None
 
     if not answer:
         update.update(proposed_solution="", human_requested=True)

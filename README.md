@@ -7,7 +7,7 @@ IT destek otomasyonu. Detaylı plan: [project2-multi-agent-plan.md](project2-mul
 - [x] Hafta 1 — Ajan iskeleti: `AgentState`, supervisor routing, triage (few-shot LLM +
   keyword fallback), StateGraph conditional edges, loop guard, LangSmith tracing
 - [x] Hafta 2 — FastMCP tool server (6 tool), ChromaDB RAG (54 doküman), solution + ticket ajanları
-- [ ] Hafta 3 — Human-in-the-loop, Guardrails AI, SQLite checkpointer
+- [x] Hafta 3 — Human-in-the-loop (kritik eskalasyon onayı), Guardrails AI doğrulama, SQLite checkpointer
 - [ ] Hafta 4 — FastAPI WebSocket, Gradio, Docker, CI
 
 ## Akış

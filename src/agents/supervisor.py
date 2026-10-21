@@ -1,12 +1,25 @@
 """Supervisor: decides which specialised agent runs next."""
 
+import re
+
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.agents.intent import FALLBACK_INTENT
 from src.agents.state import AgentName, AgentState
 from src.guardrails.loop_guard import limit_reached
 
-POSITIVE_FEEDBACK = ("çözüldü", "oldu", "teşekkür", "işe yaradı", "solved", "fixed", "works", "thanks")
+NEGATIVE_FEEDBACK = (
+    "olmadı", "çözülmedi", "çözemedi", "işe yaramadı", "hâlâ", "hala", "devam ediyor",
+    "değil", "yok", "not", "still", "didn't", "doesn't", "no",
+)
+POSITIVE_FEEDBACK = (
+    "çözüldü", "oldu", "teşekkür", "işe yaradı", "düzeldi", "evet",
+    "solved", "fixed", "works", "thanks", "yes",
+)
+
+
+def _has_word(text: str, words: tuple[str, ...]) -> bool:
+    return any(re.search(rf"(?<!\w){re.escape(w)}(?!\w)", text) for w in words)
 
 
 def solution_feedback(state: AgentState) -> bool | None:
@@ -18,6 +31,8 @@ def solution_feedback(state: AgentState) -> bool | None:
     if not isinstance(last, HumanMessage):
         return None
     text = str(last.content).lower()
+    if _has_word(text, NEGATIVE_FEEDBACK):
+        return False
     return any(word in text for word in POSITIVE_FEEDBACK)
 
 
@@ -26,6 +41,8 @@ def route(state: AgentState) -> AgentName:
         return "triage"
     if state.get("ticket_id"):
         return "end"
+    if state.get("severity") == "critical" and "approval_status" not in state:
+        return "human_approval"
     # Critical issues, unclassifiable issues and explicit human requests skip self-service.
     if (
         state.get("severity") == "critical"

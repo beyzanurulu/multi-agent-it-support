@@ -99,6 +99,13 @@ Examples:
 - "VPN bağlanmıyor, evden çalışamıyorum, acil" -> network, network, high
 - "I clicked a phishing link and entered my password" -> security_incident, security, critical
 - "Printer on 3rd floor jams constantly" -> hardware, hardware, medium
+- "Outlook'ta paylaşılan posta kutusunu göremiyorum" -> email, email, medium
+- "Finans klasörüne erişim yetkisi istiyorum" -> access_request, access, low
+- "Tüm şirkette internet yok, kimse çalışamıyor" -> network, network, critical
+- "Laptopum açılmıyor, bugün sunumum var, acil" -> hardware, hardware, high
+- "Bir insanla görüşmek istiyorum, Teams sürekli çöküyor" -> software_install, software, medium,
+  human_requested=true
+- "Merhaba, nasılsınız?" -> other, general, low
 """
 
 

@@ -4,6 +4,7 @@ from langchain_core.messages import AIMessage
 
 from src.agents.state import AgentState
 from src.agents.triage import last_user_text
+from src.guardrails.output_validator import validate_ticket
 from src.tools.server import call_tool
 
 SEVERITY_ORDER = ["low", "medium", "high", "critical"]
@@ -36,14 +37,16 @@ async def ticket_node(state: AgentState) -> dict:
     if state.get("proposed_solution") and state.get("solution_accepted") is False:
         description += "\n\n(Önerilen self-servis çözümü sorunu gidermedi.)"
 
-    ticket = await call_tool("create_ticket", {
+    payload = validate_ticket({
         "user_id": user_id,
         "title": TITLES.get(state.get("intent", ""), "Genel IT talebi"),
-        "description": description,
+        "description": description[:4000],
         "severity": severity,
         "category": state.get("category", "general"),
     })
+    ticket = await call_tool("create_ticket", payload)
 
+    # Reaching here with "critical" means an operator approved the escalation.
     if severity == "critical":
         ticket = await call_tool(
             "escalate_ticket", {"ticket_id": ticket["ticket_id"], "reason": "critical severity"}
