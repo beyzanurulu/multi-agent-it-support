@@ -2,6 +2,7 @@
 
 from langchain_core.messages import AIMessage, HumanMessage
 
+from src.agents.intent import FALLBACK_INTENT
 from src.agents.state import AgentName, AgentState
 from src.guardrails.loop_guard import limit_reached
 
@@ -25,8 +26,12 @@ def route(state: AgentState) -> AgentName:
         return "triage"
     if state.get("ticket_id"):
         return "end"
-    # Critical issues and explicit human requests skip self-service.
-    if state.get("severity") == "critical" or state.get("human_requested"):
+    # Critical issues, unclassifiable issues and explicit human requests skip self-service.
+    if (
+        state.get("severity") == "critical"
+        or state.get("human_requested")
+        or state.get("intent") == FALLBACK_INTENT
+    ):
         return "ticket"
     if not state.get("proposed_solution"):
         return "solution"

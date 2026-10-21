@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     max_iterations: int = 10
 
+    kb_path: str = "data/knowledge_base"
+    chroma_path: str = ""  # empty -> in-memory ChromaDB
+    kb_min_score: float = 0.15
+    checkpoint_db: str = "checkpoints.sqlite"
+
     @property
     def llm_enabled(self) -> bool:
         return bool(self.openai_api_key)

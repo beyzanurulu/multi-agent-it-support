@@ -42,46 +42,61 @@ def test_route_table():
     assert route({"intent": "network", "ticket_id": "INC-1"}) == "end"
 
 
-def _run(app, text, thread="t1"):
+async def _run(app, text, thread="t1", user_id="u001"):
     config = {"configurable": {"thread_id": thread}}
-    return app.invoke({"messages": [HumanMessage(content=text)], "iteration_count": 0}, config)
+    payload = {"messages": [HumanMessage(content=text)], "user_id": user_id, "iteration_count": 0}
+    return await app.ainvoke(payload, config)
 
 
-def test_solution_then_accept():
+async def test_solution_then_accept():
     app = build_graph(checkpointer=MemorySaver())
-    state = _run(app, "Şifremi unuttum")
+    state = await _run(app, "Şifremi unuttum")
     assert state["proposed_solution"] and not state.get("ticket_id")
-    state = _run(app, "Teşekkürler, çözüldü")
+    assert state["kb_results"][0]["category"] == "account"
+    state = await _run(app, "Teşekkürler, çözüldü")
     assert state["solution_accepted"] is True
     assert not state.get("ticket_id")
 
 
-def test_solution_rejected_opens_ticket():
+async def test_solution_rejected_opens_ticket():
     app = build_graph(checkpointer=MemorySaver())
-    _run(app, "VPN bağlanmıyor")
-    state = _run(app, "Hâlâ bağlanmıyor")
+    state = await _run(app, "VPN bağlanmıyor")
+    assert state["kb_results"][0]["id"] == "vpn_not_connecting"
+    state = await _run(app, "Hâlâ bağlanmıyor")
     assert state["solution_accepted"] is False
     assert state["ticket_id"].startswith("INC-")
 
 
-def test_critical_goes_straight_to_ticket():
-    app = build_graph()
-    state = app.invoke({"messages": [HumanMessage(content="Ransomware bulaştı!")]})
+async def test_critical_goes_straight_to_ticket():
+    app = build_graph(checkpointer=MemorySaver())
+    state = await _run(app, "Ransomware bulaştı!")
     assert state["escalated"] is True
     assert state["ticket_status"] == "escalated"
     assert not state.get("proposed_solution")
 
 
-def test_unknown_intent_opens_ticket():
-    app = build_graph()
-    state = app.invoke({"messages": [HumanMessage(content="Merhaba, bir sorum var")]})
+async def test_unknown_intent_opens_ticket():
+    app = build_graph(checkpointer=MemorySaver())
+    state = await _run(app, "Merhaba, bir sorum var")
     assert state["ticket_id"]
 
 
-def test_loop_guard(monkeypatch):
+async def test_service_outage_opens_ticket():
+    app = build_graph(checkpointer=MemorySaver())
+    state = await _run(app, "fileserver klasörlerine ulaşamıyorum")
+    assert state["ticket_id"] and not state.get("proposed_solution")
+
+
+async def test_vip_user_severity_bumped():
+    app = build_graph(checkpointer=MemorySaver())
+    state = await _run(app, "Bana insan lazım, Outlook çalışmıyor", user_id="u002")
+    assert state["severity"] == "high"
+
+
+async def test_loop_guard(monkeypatch):
     monkeypatch.setenv("MAX_ITERATIONS", "2")
     get_settings.cache_clear()
-    app = build_graph()
-    state = app.invoke({"messages": [HumanMessage(content="Merhaba")]})
+    app = build_graph(checkpointer=MemorySaver())
+    state = await _run(app, "Merhaba")
     assert state["iteration_count"] <= 3
     assert state["messages"][-1].name == "supervisor"

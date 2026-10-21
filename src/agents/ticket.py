@@ -1,28 +1,65 @@
-"""Ticket agent.
-
-Week 1 placeholder: generates a local ticket id. Week 2 swaps this for the
-FastMCP `create_ticket` / `escalate_ticket` tools backed by the mock CRM.
-"""
-
-import uuid
+"""Ticket agent: creates, escalates and notifies via FastMCP tools."""
 
 from langchain_core.messages import AIMessage
 
 from src.agents.state import AgentState
+from src.agents.triage import last_user_text
+from src.tools.server import call_tool
+
+SEVERITY_ORDER = ["low", "medium", "high", "critical"]
+
+TITLES = {
+    "password_reset": "Şifre / hesap sorunu",
+    "software_install": "Yazılım kurulum talebi",
+    "network": "Ağ bağlantı sorunu",
+    "hardware": "Donanım arızası",
+    "email": "E-posta sorunu",
+    "access_request": "Erişim talebi",
+    "security_incident": "Güvenlik olayı",
+}
 
 
-def ticket_node(state: AgentState) -> dict:
-    ticket_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
-    escalated = state.get("severity") == "critical"
-    status = "escalated" if escalated else "open"
+def _bump(severity: str) -> str:
+    idx = SEVERITY_ORDER.index(severity)
+    return SEVERITY_ORDER[min(idx + 1, len(SEVERITY_ORDER) - 2)] if idx < 2 else severity
+
+
+async def ticket_node(state: AgentState) -> dict:
+    user_id = state.get("user_id") or "anonymous"
+    severity = state.get("severity", "low")
+
+    user = await call_tool("get_user_info", {"user_id": user_id})
+    if user.get("vip"):
+        severity = _bump(severity)
+
+    description = last_user_text(state)
+    if state.get("proposed_solution") and state.get("solution_accepted") is False:
+        description += "\n\n(Önerilen self-servis çözümü sorunu gidermedi.)"
+
+    ticket = await call_tool("create_ticket", {
+        "user_id": user_id,
+        "title": TITLES.get(state.get("intent", ""), "Genel IT talebi"),
+        "description": description,
+        "severity": severity,
+        "category": state.get("category", "general"),
+    })
+
+    if severity == "critical":
+        ticket = await call_tool(
+            "escalate_ticket", {"ticket_id": ticket["ticket_id"], "reason": "critical severity"}
+        )
+
+    text = (
+        f"Destek talebiniz oluşturuldu: {ticket['ticket_id']} "
+        f"(öncelik: {severity}, ekip: {ticket['assigned_to']}, durum: {ticket['status']})."
+    )
+    await call_tool("send_notification", {"user_id": user_id, "message": text, "channel": "email"})
+
     return {
         "current_agent": "ticket",
-        "ticket_id": ticket_id,
-        "ticket_status": status,
-        "escalated": escalated,
-        "messages": [AIMessage(
-            content=f"Destek talebiniz oluşturuldu: {ticket_id} "
-            f"(öncelik: {state.get('severity', 'low')}, durum: {status}).",
-            name="ticket",
-        )],
+        "severity": severity,
+        "ticket_id": ticket["ticket_id"],
+        "ticket_status": ticket["status"],
+        "escalated": ticket["escalated"],
+        "messages": [AIMessage(content=text, name="ticket")],
     }
