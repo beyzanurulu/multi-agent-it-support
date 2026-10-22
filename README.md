@@ -1,3 +1,15 @@
+---
+title: Multi-Agent IT Support
+emoji: 🛠️
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 6.30.0
+python_version: "3.12"
+app_file: app.py
+pinned: false
+---
+
 # Multi-Agent IT Support
 
 LangGraph tabanlı, kurumsal IT destek otomasyonu: gelen talebi sınıflandıran, bilgi
@@ -67,6 +79,22 @@ uv run python -m src.main                     # CLI
 uv run python -m src.tools.server             # FastMCP server (stdio)
 uv run pytest                                 # testler
 ```
+
+## Canlı demo (Hugging Face Spaces)
+
+`app.py` API'yi ve Gradio arayüzünü tek port üzerinde çalıştırır; README başındaki YAML
+Spaces ayarıdır.
+
+1. https://huggingface.co/new-space → SDK: **Gradio** → oluştur
+2. Repoyu Space'e push et:
+   ```bash
+   git remote add space https://huggingface.co/spaces/<kullanıcı>/<space-adı>
+   git push space HEAD:main
+   ```
+3. (Opsiyonel) Space → Settings → Secrets: `OPENAI_API_KEY`, `LANGSMITH_API_KEY`,
+   `LANGSMITH_TRACING=true`. Anahtar yoksa demo offline sınıflandırıcı ve embedding ile çalışır.
+
+Lokal olarak aynı tek süreçli demo: `uv run python app.py` → http://localhost:7860
 
 ## API
 
