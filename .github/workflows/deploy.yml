@@ -1,10 +1,9 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: [CI]
-    branches: [main]
-    types: [completed]
+  # Manual only until the Oracle VM and the KUBECONFIG_B64 secret exist. To deploy after
+  # every green CI run on main, restore:
+  #   workflow_run: {workflows: [CI], branches: [main], types: [completed]}
   workflow_dispatch:
 
 permissions:
