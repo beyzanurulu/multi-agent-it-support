@@ -1,34 +1,71 @@
+# Local development: docker compose up --build  ->  UI http://localhost:8080
+x-db-env: &db-env
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/helpdesk
+  READONLY_DATABASE_URL: postgresql://helpdesk_readonly:${READONLY_DB_PASSWORD:-readonly}@postgres:5432/helpdesk
+  READONLY_DB_PASSWORD: ${READONLY_DB_PASSWORD:-readonly}
+
 services:
-  api:
-    build: .
-    env_file:
-      - path: .env
-        required: false
+  postgres:
+    image: pgvector/pgvector:pg16
     environment:
-      CHECKPOINT_DB: /data/checkpoints.sqlite
-      CHROMA_PATH: /data/chroma
-      API_KEYS: ${API_KEYS:-dev-key}
-    volumes:
-      - app-data:/data
-    ports:
-      - "8000:8000"
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: helpdesk
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    build: {context: ., dockerfile: services/mcp-tools/Dockerfile}
+    command: ["sh", "-c", "alembic -c db/alembic.ini upgrade head && python db/seed/seed.py"]
+    environment: *db-env
+    depends_on: {postgres: {condition: service_healthy}}
+
+  mcp-tools:
+    build: {context: ., dockerfile: services/mcp-tools/Dockerfile}
+    environment: *db-env
+    ports: ["8001:8001"]
+    depends_on: {migrate: {condition: service_completed_successfully}}
+
+  nlu-service:
+    build: {context: ., dockerfile: services/nlu-service/Dockerfile}
+    ports: ["8002:8002"]
+
+  agent-api:
+    build: {context: ., dockerfile: services/agent-api/Dockerfile}
+    env_file: [{path: .env, required: false}]
+    environment:
+      <<: *db-env
+      NLU_URL: http://nlu-service:8002
+      MCP_URL: http://mcp-tools:8001/mcp
+      AUTH_SECRET: ${AUTH_SECRET:-local-dev-secret}
+    ports: ["8000:8000"]
+    depends_on: [mcp-tools, nlu-service]
 
   ui:
-    build: .
-    command: ["python", "-m", "src.ui.gradio_app"]
+    build: {context: ., dockerfile: services/ui/Dockerfile}
     environment:
-      API_URL: http://api:8000
-      DEMO_API_KEY: ${API_KEYS:-dev-key}
-    ports:
-      - "7860:7860"
-    depends_on:
-      api:
-        condition: service_healthy
+      AGENT_API_URL: http://agent-api:8000
+      CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET:-local-dev-chainlit-secret-0123456789}
+    ports: ["8080:8080"]
+    depends_on: [agent-api]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes: [./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
 
 volumes:
-  app-data:
+  pgdata:

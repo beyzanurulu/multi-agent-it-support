@@ -1,0 +1,28 @@
+<View>
+  <Header value="IT destek talebi"/>
+  <Labels name="ner" toName="text">
+    <Label value="YAZILIM" background="#1f77b4"/>
+    <Label value="CIHAZ" background="#ff7f0e"/>
+    <Label value="HATA_KODU" background="#d62728"/>
+    <Label value="DEPARTMAN" background="#2ca02c"/>
+    <Label value="KISI" background="#9467bd"/>
+    <Label value="IP_ADRESI" background="#8c564b"/>
+    <Label value="TARIH" background="#e377c2"/>
+  </Labels>
+  <Text name="text" value="$text"/>
+  <Header value="Niyet (birden fazla seçilebilir)"/>
+  <Choices name="intent" toName="text" choice="multiple" showInline="true">
+    <Choice value="password_reset"/>
+    <Choice value="vpn_issue"/>
+    <Choice value="email_issue"/>
+    <Choice value="software_install"/>
+    <Choice value="hardware_issue"/>
+    <Choice value="network_issue"/>
+    <Choice value="access_request"/>
+    <Choice value="printer_issue"/>
+    <Choice value="account_locked"/>
+    <Choice value="ticket_status"/>
+    <Choice value="report_request"/>
+    <Choice value="other"/>
+  </Choices>
+</View>

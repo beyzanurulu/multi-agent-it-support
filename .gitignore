@@ -7,3 +7,14 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 chroma_data/
+ml/artifacts/
+ml/data/raw.jsonl
+ml/data/splits/
+ml/data/ls_tasks.json
+mlruns/
+models/*
+!models/nlu/
+models/nlu/*
+!models/nlu/README.md
+.chainlit/
+.files/

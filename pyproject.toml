@@ -1,56 +1,78 @@
 [project]
 name = "multi-agent-it-support"
-version = "0.1.0"
-description = "Multi-agent IT support automation built on LangGraph"
+version = "0.2.0"
+description = "Türkçe IT destek multi-agent platformu (LangGraph + FastMCP + BERTurk NLU)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "langgraph>=0.2",
-    "langchain-core>=0.3",
-    "langchain-openai>=0.2",
-    "langsmith>=0.1",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "structlog>=24.1",
-    "fastmcp>=4.1.3",
-    "chromadb>=1.5.9",
-    "langgraph-checkpoint-sqlite>=3.1.2",
-    "aiosqlite>=0.22.1",
-    "fastapi>=0.159.1",
-    "uvicorn[standard]>=0.54.0",
-    "guardrails-ai>=0.11.0",
+    "httpx>=0.27",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "prometheus-client>=0.20",
 ]
 
 [project.optional-dependencies]
-demo = [
-    "gradio>=6.30.0",
-    "httpx>=0.28.1",
+agent = [
+    "langgraph>=0.6",
+    "langgraph-checkpoint-postgres>=2.0",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-ollama>=0.2",
+    "langsmith>=0.1",
+    "fastmcp>=2.10",
+    "psycopg[binary,pool]>=3.2",
+    "sqlglot>=25",
+    "presidio-analyzer>=2.2",
+    "presidio-anonymizer>=2.2",
+]
+mcp = [
+    "fastmcp>=2.10",
+    "psycopg[binary,pool]>=3.2",
+    "pgvector>=0.3",
+    "sqlglot>=25",
+]
+nlu = [
+    "onnxruntime>=1.18",
+    "tokenizers>=0.19",
+    "numpy>=1.26",
+]
+embeddings = ["fastembed>=0.3"]
+ui = ["chainlit>=2.0"]
+db = ["alembic>=1.13", "sqlalchemy>=2.0", "psycopg[binary]>=3.2"]
+ml = [
+    "torch>=2.3",
+    "transformers>=4.44",
+    "datasets>=2.20",
+    "seqeval>=1.2",
+    "scikit-learn>=1.5",
+    "mlflow>=2.15",
+    "onnx>=1.16",
+    "onnxruntime>=1.18",
+    "tokenizers>=0.19",
 ]
 
 [dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-    "pytest>=8",
-    "pytest-asyncio>=1.4.0",
-    "ruff>=0.5",
-]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5"]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
+[tool.uv]
+package = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+testpaths = ["services/agent-api/tests", "services/mcp-tools/tests", "services/nlu-service/tests", "ml/tests"]
+pythonpath = ["services/agent-api", "services/mcp-tools", "services/nlu-service", "ml", "."]
 asyncio_mode = "auto"
-filterwarnings = ["ignore::DeprecationWarning:guardrails.*", "ignore::UserWarning:guardrails.*"]
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["db/migrations/versions"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends"]
+

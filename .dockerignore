@@ -3,6 +3,9 @@
 **/__pycache__
 .pytest_cache
 .ruff_cache
-*.sqlite
-chroma_data
 .env
+ml/artifacts
+ml/data/raw.jsonl
+ml/data/splits
+mlruns
+evals/reports
