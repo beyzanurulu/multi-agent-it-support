@@ -233,4 +233,6 @@ def upload_langsmith(scenarios: list[dict], rows: list[dict], label: str) -> Non
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # psycopg async mode does not support the Proactor loop
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     sys.exit(asyncio.run(main()))

@@ -38,6 +38,12 @@ def test_rule_entities():
             ("KISI", "Ayşe Yılmaz"), ("YAZILIM", "Teams")} <= labels
 
 
+@pytest.mark.parametrize("text", ["VPN'e bağlanamıyorum, 809 hatası veriyor",
+                                  "VPN hata 809 veriyor"])
+def test_rule_numeric_error_code(text):
+    assert ("HATA_KODU", "809") in {(e["label"], e["text"]) for e in rules.extract_entities(text)}
+
+
 def test_decode_bio_merges_subwords():
     text = "Outlook açılmıyor"
     tags = ["O", "B-YAZILIM", "I-YAZILIM", "O", "O"]

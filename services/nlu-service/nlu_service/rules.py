@@ -43,7 +43,7 @@ MONTHS = "ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kas�
 
 SUFFIX = r"(?:['’]?[a-zçğıöşü]*)"
 PATTERNS: list[tuple[str, str]] = [
-    ("HATA_KODU", r"\b0x[0-9a-fA-F]{6,8}\b|\bERR_[A-Z_]+\b|(?<=hata )\d{3,4}\b"),
+    ("HATA_KODU", r"\b0x[0-9a-fA-F]{6,8}\b|\bERR_[A-Z_]+\b|(?<=hata )\d{3,4}\b|\b\d{3,4}(?= [hH]ata)"),
     ("IP_ADRESI", r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
     ("TARIH", (rf"\b\d{{1,2}}[./]\d{{1,2}}[./]\d{{2,4}}\b|\b\d{{1,2}} (?:{MONTHS})\b|"
               r"\b(?:bugün|dün|yarın|bu sabah|dün akşam|geçen hafta|bu hafta|bu ay)\b")),

@@ -23,7 +23,11 @@ def emit(event: dict) -> None:
         pass
 
 
+NLU_MAX_CHARS = 2000  # nlu-service rejects longer input; the issue is stated up front anyway
+
+
 async def analyze_text(text: str) -> dict:
+    text = text[:NLU_MAX_CHARS]
     url = get_settings().nlu_url
     if url == "inprocess":
         from nlu_service.main import BACKEND, BACKEND_NAME

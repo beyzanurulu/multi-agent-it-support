@@ -21,6 +21,43 @@ async def test_plan_example_multi_intent_vpn_first(chat):
     assert all(s["stage"] == "done" for s in c.state["plan"])
 
 
+async def test_new_problem_while_awaiting_feedback_goes_first(chat):
+    c = await chat().say("Outlook açılmıyor, sürekli şifre soruyor")  # password_reset + email_issue
+    assert c.state["awaiting"]["kind"] == "feedback"
+
+    await c.say("VPN'e bağlanamıyorum, 809 hatası veriyor")
+    assert c.last.name == "solution"
+    vpn = next(s for s in c.state["plan"] if s["intent"] == "vpn_issue")
+    assert vpn["kb_sources"] == ["vpn_error_809"]
+    assert c.state["awaiting"]["step"] == vpn["id"]
+    # The Outlook step from the earlier turn is still pending, not dropped.
+    assert next(s for s in c.state["plan"] if s["intent"] == "email_issue")["stage"] == "triage"
+
+
+async def test_new_problem_while_awaiting_info(chat):
+    c = await chat().say("Bir şeyin kurulumu lazım")
+    assert c.state["awaiting"]["kind"] == "info"
+    await c.say("Hesabım kilitlendi")
+    plan = c.state["plan"]
+    assert plan[0]["intent"] == "account_locked"
+    assert next(s for s in plan if s["intent"] == "software_install")["outcome"] == "unanswered"
+
+
+async def test_deferred_feedback_keeps_waiting(chat):
+    c = await chat().say("VPN bağlanmıyor")
+    await c.say("tamam deneyeceğim")
+    assert c.state["awaiting"]["kind"] == "feedback"
+    assert c.state["plan"][0]["stage"] == "feedback"
+    await c.say("denedim ama olmadı")
+    assert c.interrupt["type"] == "ticket_approval"
+
+
+async def test_resolved_feedback_gets_a_reply(chat):
+    c = await chat().say("VPN bağlanmıyor")
+    await c.say("teşekkürler çözüldü")
+    assert c.last.name == "supervisor" and "çözüldü" in c.last.content
+
+
 async def test_rejected_approval_creates_nothing(chat):
     c = await chat().say("Yazıcı kağıt sıkıştırıyor")
     await c.say("hala aynı")

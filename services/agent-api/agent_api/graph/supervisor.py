@@ -1,5 +1,6 @@
 """Entry guard, NLU and the planner/supervisor that hands work to agents via Command."""
 
+import re
 import time
 import uuid
 
@@ -13,11 +14,16 @@ from agent_api.core.metrics import AGENT_LATENCY, GUARDRAIL
 from agent_api.graph.feedback import classify_feedback
 from agent_api.graph.planner import build_plan, describe, next_step, update_step
 from agent_api.graph.state import AgentState
+from agent_api.graph.triage import MISSING
 from agent_api.guardrails import injection
 from agent_api.guardrails.limits import step_limit_reached
 
 OTHER_REPLY = ("Bu mesajı bir IT talebi olarak anlayamadım. Yaşadığınız sorunu biraz daha "
                "açar mısınız? (ör. hangi uygulama/cihaz, aldığınız hata mesajı)")
+RESOLVED_REPLY = "Sevindim, bu sorunu çözüldü olarak kapattım."
+# "I'll try it later" is not feedback yet: keep waiting instead of closing the step.
+DEFERRED = re.compile(r"deneyece[ğg]im|deneyeyim|bakaca[ğg]ım|birazdan|sonra dene", re.IGNORECASE)
+DEFERRED_REPLY = "Tamam, adımları denedikten sonra işe yarayıp yaramadığını yazmanız yeterli."
 
 
 def last_user_text(state: AgentState) -> str:
@@ -55,6 +61,18 @@ def _start_new_plan(state: AgentState) -> dict:
     return {"plan": plan, "awaiting": None}
 
 
+def _new_problem_first(state: AgentState, plan: list, step_id: int) -> dict:
+    """Not an answer to what we asked but a new problem: close the old step, plan anew.
+
+    The new problem goes first; steps still pending from earlier turns follow it.
+    """
+    plan = update_step(plan, step_id, stage="done", outcome="unanswered")
+    new = build_plan(state["nlu"]["intents"], start_id=max(s["id"] for s in plan) + 1,
+                     text=state["turn_text"], entities=state["nlu"].get("entities", []))
+    emit({"type": "plan", "steps": new})
+    return {"plan": new + plan, "awaiting": None}
+
+
 def _absorb_turn(state: AgentState) -> dict:
     """Decide what the new user message means given what we were waiting for."""
     awaiting = state.get("awaiting")
@@ -63,23 +81,26 @@ def _absorb_turn(state: AgentState) -> dict:
         return _start_new_plan(state)
 
     step_id = awaiting["step"]
+    real_intents = {i["label"] for i in state["nlu"]["intents"]} - {"other"}
     if awaiting["kind"] == "info":
+        step = next(s for s in plan if s["id"] == step_id)
+        answer_labels = MISSING.get(step["intent"], ((),))[0]
+        answers = any(e["label"] in answer_labels for e in state["nlu"].get("entities", []))
+        if real_intents and step["intent"] not in real_intents and not answers:
+            return _new_problem_first(state, plan, step_id)
         return {"plan": update_step(plan, step_id, stage="triage", extra=state["turn_text"]),
                 "awaiting": None}
 
     solved = classify_feedback(state["turn_text"])
-    real_intents = [i for i in state["nlu"]["intents"] if i["label"] != "other"]
+    if solved is not False and DEFERRED.search(state["turn_text"]):
+        return {"messages": [AIMessage(content=DEFERRED_REPLY, name="supervisor")]}
     if solved is None and real_intents:
-        # Not an answer to the proposal but a new problem: close the old step, plan anew.
-        plan = update_step(plan, step_id, stage="done", outcome="unanswered")
-        new = build_plan(state["nlu"]["intents"], start_id=max(s["id"] for s in plan) + 1,
-                         text=state["turn_text"], entities=state["nlu"].get("entities", []))
-        emit({"type": "plan", "steps": new})
-        return {"plan": plan + new, "awaiting": None}
+        return _new_problem_first(state, plan, step_id)
     if solved:
         emit({"type": "plan_revision", "step": step_id, "change": "çözüldü, sonraki adıma geç"})
         return {"plan": update_step(plan, step_id, stage="done", outcome="resolved"),
-                "awaiting": None}
+                "awaiting": None,
+                "messages": [AIMessage(content=RESOLVED_REPLY, name="supervisor")]}
     emit({"type": "plan_revision", "step": step_id, "change": "çözüm işe yaramadı → ticket"})
     return {"plan": update_step(plan, step_id, stage="ticket"), "awaiting": None}
 
