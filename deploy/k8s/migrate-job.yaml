@@ -1,0 +1,19 @@
+# Re-created by the deploy workflow on every release (alembic + idempotent seed).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: helpdesk
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ghcr.io/beyzanurulu/multi-agent-it-support/mcp-tools:latest
+          command: ["sh", "-c", "alembic -c db/alembic.ini upgrade head && python db/seed/seed.py"]
+          envFrom:
+            - secretRef: {name: helpdesk-secrets}
+            - configMapRef: {name: helpdesk-config}

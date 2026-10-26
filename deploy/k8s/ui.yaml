@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: helpdesk
+  labels: {app: ui}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: ui}}
+  template:
+    metadata:
+      labels: {app: ui}
+      annotations:
+        prometheus.io/scrape: "false"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics/
+    spec:
+      containers:
+        - name: ui
+          image: ghcr.io/beyzanurulu/multi-agent-it-support/ui:latest
+          ports: [{containerPort: 8080}]
+          envFrom:
+            - secretRef: {name: helpdesk-secrets}
+            - configMapRef: {name: helpdesk-config}
+          readinessProbe:
+            httpGet: {path: /, port: 8080}
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 768Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: helpdesk
+spec:
+  selector: {app: ui}
+  ports: [{port: 8080, targetPort: 8080}]

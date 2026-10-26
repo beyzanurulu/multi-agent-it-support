@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nlu-service
+  namespace: helpdesk
+  labels: {app: nlu-service}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: nlu-service}}
+  template:
+    metadata:
+      labels: {app: nlu-service}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: /metrics/
+    spec:
+      containers:
+        - name: nlu-service
+          image: ghcr.io/beyzanurulu/multi-agent-it-support/nlu-service:latest
+          ports: [{containerPort: 8002}]
+          envFrom:
+            - secretRef: {name: helpdesk-secrets}
+            - configMapRef: {name: helpdesk-config}
+          readinessProbe:
+            httpGet: {path: /health, port: 8002}
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 100m, memory: 384Mi}
+            limits: {memory: 1Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nlu-service
+  namespace: helpdesk
+spec:
+  selector: {app: nlu-service}
+  ports: [{port: 8002, targetPort: 8002}]

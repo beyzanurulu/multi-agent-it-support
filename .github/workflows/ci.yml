@@ -8,21 +8,50 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: helpdesk
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/helpdesk
+      READONLY_DATABASE_URL: postgresql://helpdesk_readonly:readonly@localhost:5432/helpdesk
+      EMBEDDING_PROVIDER: hashing
+      OPENAI_API_KEY: ""
+      LANGSMITH_TRACING: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run pytest -q
-        env:
-          OPENAI_API_KEY: ""
-          LANGSMITH_TRACING: "false"
+      - run: uv sync --frozen --extra agent --extra mcp --extra nlu --extra db
+      - name: Lint
+        run: uv run ruff check .
+      - name: Migrate + seed
+        run: |
+          uv run alembic -c db/alembic.ini upgrade head
+          uv run python db/seed/seed.py
+      - name: Unit + integration tests
+        run: uv run pytest -q services
+      - name: Agent eval (fails the PR if a target is missed)
+        run: uv run python evals/run_eval.py --check --label ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report
+          path: evals/reports/ci.json
 
-  docker:
+  ml-smoke:
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose build
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen --extra ml --extra nlu
+      - name: NLU pipeline smoke test (tiny model, CPU)
+        run: uv run pytest -q ml/tests

@@ -1,0 +1,32 @@
+# kubectl apply -k deploy/   (the secret must exist first, see k8s/secrets.example.yaml)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: helpdesk
+resources:
+  - k8s/namespace.yaml
+  - k8s/config.yaml
+  - k8s/postgres.yaml
+  - k8s/mcp-tools.yaml
+  - k8s/nlu-service.yaml
+  - k8s/agent-api.yaml
+  - k8s/ui.yaml
+  - k8s/hpa.yaml
+  - k8s/ingress.yaml
+  - k8s/prometheus-rbac.yaml
+  - k8s/monitoring.yaml
+configMapGenerator:
+  - name: prometheus-config
+    files: [prometheus.yml=monitoring/prometheus-k8s.yml]
+  - name: grafana-datasources
+    files: [prometheus.yml=monitoring/grafana/provisioning/datasources/prometheus.yml]
+  - name: grafana-providers
+    files: [default.yml=monitoring/grafana/provisioning/dashboards/default.yml]
+  - name: grafana-dashboards
+    files: [helpdesk.json=monitoring/grafana/dashboards/helpdesk.json]
+generatorOptions:
+  disableNameSuffixHash: true
+images:
+  - {name: ghcr.io/beyzanurulu/multi-agent-it-support/agent-api, newTag: latest}
+  - {name: ghcr.io/beyzanurulu/multi-agent-it-support/mcp-tools, newTag: latest}
+  - {name: ghcr.io/beyzanurulu/multi-agent-it-support/nlu-service, newTag: latest}
+  - {name: ghcr.io/beyzanurulu/multi-agent-it-support/ui, newTag: latest}

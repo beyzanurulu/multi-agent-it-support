@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-tools
+  namespace: helpdesk
+  labels: {app: mcp-tools}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: mcp-tools}}
+  template:
+    metadata:
+      labels: {app: mcp-tools}
+      annotations:
+        prometheus.io/scrape: "false"
+        prometheus.io/port: "8001"
+        prometheus.io/path: /metrics/
+    spec:
+      containers:
+        - name: mcp-tools
+          image: ghcr.io/beyzanurulu/multi-agent-it-support/mcp-tools:latest
+          ports: [{containerPort: 8001}]
+          envFrom:
+            - secretRef: {name: helpdesk-secrets}
+            - configMapRef: {name: helpdesk-config}
+          readinessProbe:
+            tcpSocket: {port: 8001}
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {memory: 1536Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-tools
+  namespace: helpdesk
+spec:
+  selector: {app: mcp-tools}
+  ports: [{port: 8001, targetPort: 8001}]

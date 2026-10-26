@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-api
+  namespace: helpdesk
+  labels: {app: agent-api}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: agent-api}}
+  template:
+    metadata:
+      labels: {app: agent-api}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics/
+    spec:
+      containers:
+        - name: agent-api
+          image: ghcr.io/beyzanurulu/multi-agent-it-support/agent-api:latest
+          ports: [{containerPort: 8000}]
+          envFrom:
+            - secretRef: {name: helpdesk-secrets}
+            - configMapRef: {name: helpdesk-config}
+          readinessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {memory: 1536Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-api
+  namespace: helpdesk
+spec:
+  selector: {app: agent-api}
+  ports: [{port: 8000, targetPort: 8000}]
