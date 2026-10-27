@@ -18,3 +18,7 @@ models/nlu/*
 !models/nlu/README.md
 .chainlit/
 .files/
+
+# local assistant notes
+CLAUDE.md
+.claude/
