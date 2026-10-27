@@ -2,7 +2,7 @@
 
 Şirket çalışanının Türkçe yazdığı IT sorununu anlayan (intent + NER), planlayan, bilgi
 tabanından çözen, gerekirse onay alarak ticket açan ve yöneticiye ticket istatistiklerini SQL
-ile raporlayan multi-agent sistem. Plan: [project2-multi-agent-plan.md](project2-multi-agent-plan.md).
+ile raporlayan multi-agent sistem. 
 
 > Tüm kullanıcılar, ticketlar ve dokümanlar **sentetiktir**; gerçek kişi veya şirket verisi yoktur.
 
