@@ -75,8 +75,15 @@ async def _llm_sql(question: str, schema: dict) -> tuple[str | None, int]:
     schema_text = "\n".join(f"{t}({', '.join(cols)})" for t, cols in schema.items())
     out = await llm.ainvoke([("system", SQL_PROMPT.format(schema=schema_text)),
                              ("human", question)])
-    sql = re.sub(r"^```\w*|```$", "", str(out.content).strip(), flags=re.MULTILINE).strip()
-    return sql, token_usage(out)
+    return extract_sql(str(out.content)), token_usage(out)
+
+
+def extract_sql(text: str) -> str:
+    """Small models wrap the query in prose: prefer a fenced block, else start at SELECT/WITH."""
+    if fenced := re.search(r"```(?:sql)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE):
+        return fenced.group(1).strip()
+    start = re.search(r"\b(SELECT|WITH)\b", text, re.IGNORECASE)
+    return text[start.start():].strip() if start else text.strip()
 
 
 def _table(result: dict, max_rows: int = 20) -> str:
@@ -106,8 +113,14 @@ async def analytics(state: AgentState) -> Command:
         sql, tokens = await _llm_sql(question, schema)
     except Exception as exc:  # noqa: BLE001
         log.warning("analytics.llm_failed", error=str(exc))
-    sql = sql or rule_sql(question, entities(active(state), "DEPARTMAN"))
     TOKENS.labels("analytics").inc(tokens)
+    fallback = rule_sql(question, entities(active(state), "DEPARTMAN"))
+    if sql and not (llm_check := check_sql(sql)).ok:
+        # The LLM's query failed the guard: record it, answer with the template query instead.
+        GUARDRAIL.labels("sql_guard").inc()
+        emit({"type": "sql", "sql": sql, "ok": False, "reason": llm_check.reason})
+        sql = None
+    sql = sql or fallback
 
     check = check_sql(sql)
     emit({"type": "sql", "sql": sql, "ok": check.ok, "reason": check.reason})

@@ -25,7 +25,7 @@ class SqlCheck:
 def check_sql(sql: str) -> SqlCheck:
     try:
         statements = [s for s in sqlglot.parse(sql, dialect="postgres") if s is not None]
-    except sqlglot.errors.ParseError as exc:
+    except sqlglot.errors.SqlglotError as exc:  # ParseError, TokenError (e.g. LLM prose)
         return SqlCheck(False, reason=f"parse error: {exc}".splitlines()[0])
     if len(statements) != 1:
         return SqlCheck(False, reason="exactly one statement allowed")

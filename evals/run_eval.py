@@ -137,6 +137,18 @@ async def main() -> int:
     p.add_argument("--langsmith", action="store_true", help="upload results to LangSmith")
     args = p.parse_args()
 
+    if os.environ["MCP_URL"] != "inprocess":
+        return await evaluate(args)
+    # Every tool call opens its own in-process MCP session; one session held open for the whole
+    # run keeps the DB pools alive instead of reconnecting on each call (hundreds of pools).
+    from fastmcp import Client
+    from mcp_tools.server import mcp
+
+    async with Client(mcp):
+        return await evaluate(args)
+
+
+async def evaluate(args) -> int:
     lines = Path(args.scenarios).read_text(encoding="utf-8").splitlines()
     scenarios = [json.loads(line) for line in lines if line.strip()]
     app = build_graph(checkpointer=MemorySaver(), store=InMemoryStore())

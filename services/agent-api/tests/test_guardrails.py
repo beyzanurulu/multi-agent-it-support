@@ -55,6 +55,8 @@ FORBIDDEN_SQL = [
     "INSERT INTO departments(name) VALUES ('x')", "CREATE TABLE x (id int)",
     "SELECT * INTO newtable FROM v_tickets", "COPY v_tickets TO '/tmp/x'",
     "SELECT * FROM information_schema.tables", "GRANT ALL ON v_tickets TO public",
+    # LLM prose instead of SQL used to raise TokenError instead of being rejected
+    "Bu sorgu `department` değeri 'Muhasebe' olan kayıtları sayar",
 ]
 
 
@@ -75,6 +77,21 @@ def test_sql_guard_blocks(sql):
 def test_sql_guard_allows_and_limits(sql, expected_limit):
     result = check_sql(sql)
     assert result.ok and f"LIMIT {expected_limit}" in result.sql
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "SELECT count(*) FROM v_tickets",
+        "```sql\nSELECT count(*) FROM v_tickets\n```",
+        "İşte sorgu:\n```\nSELECT count(*) FROM v_tickets\n```\nBu sorgu ticketları sayar.",
+        "Sorgu: SELECT count(*) FROM v_tickets",
+    ],
+)
+def test_extract_sql_from_llm_output(text):
+    from agent_api.graph.analytics import extract_sql
+
+    assert extract_sql(text) == "SELECT count(*) FROM v_tickets"
 
 
 @pytest.mark.parametrize(

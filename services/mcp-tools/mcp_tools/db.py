@@ -42,7 +42,10 @@ async def close_pools() -> None:
     global _users
     _users -= 1
     if _users == 0:
-        for pool in (get_pool(), get_readonly_pool()):
-            await pool.close()
+        # Forget the pools before awaiting close(): a session opening meanwhile gets new ones
+        # instead of reopening a closing pool.
+        pools = (get_pool(), get_readonly_pool())
         get_pool.cache_clear()
         get_readonly_pool.cache_clear()
+        for pool in pools:
+            await pool.close()
