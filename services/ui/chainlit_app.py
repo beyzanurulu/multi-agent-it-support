@@ -117,11 +117,16 @@ async def on_message(message: cl.Message):
     url = f"{WS}/ws/chat/{cl.user_session.get('session_id')}?token={user.metadata['token']}"
     async with websockets.connect(url, max_size=2**22) as ws:
         await ws.send(json.dumps({"message": message.content}))
-        while True:
+        # Each request (the message, every approval) ends with its own "done"; the turn that
+        # asked for approval sends its "done" before the resumed run starts.
+        open_requests = 1
+        while open_requests:
             event = json.loads(await ws.recv())
             if event["type"] == "done":
-                break
+                open_requests -= 1
+                continue
             pending = await _render(event)
             if pending:
                 approved = await _ask_approval(pending)
                 await ws.send(json.dumps({"type": "approval", "approved": approved}))
+                open_requests += 1

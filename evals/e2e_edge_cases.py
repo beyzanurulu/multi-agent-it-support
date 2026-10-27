@@ -471,17 +471,25 @@ def _():
     async def go():
         sid = str(uuid.uuid4())
         url = f"ws://localhost:8000/ws/chat/{sid}?token={token('calisan')}"
-        kinds = []
+        kinds, texts = [], []
         async with websockets.connect(url, max_size=2**22) as ws:
             for msg in ("Yazıcı kağıt sıkıştırıyor", "olmadı"):
                 await ws.send(json.dumps({"message": msg}))
-                while (e := json.loads(await ws.recv()))["type"] != "done":
+                open_requests = 1  # same loop as the Chainlit UI
+                while open_requests:
+                    e = json.loads(await ws.recv())
+                    if e["type"] == "done":
+                        open_requests -= 1
+                        continue
                     kinds.append(e["type"])
+                    texts.append(str(e.get("content", "")))
                     if e["type"] == "interrupt":
-                        await ws.send(json.dumps({"type": "approval", "approved": False}))
-        return kinds
-    kinds = asyncio.run(go())
-    return "interrupt" in kinds and "tool_call" in kinds, ",".join(kinds)
+                        await ws.send(json.dumps({"type": "approval", "approved": True}))
+                        open_requests += 1
+        return kinds, texts
+    kinds, texts = asyncio.run(asyncio.wait_for(go(), 120))
+    created = any("talebiniz oluşturuldu" in t for t in texts)
+    return "interrupt" in kinds and created, ",".join(kinds)
 
 
 @case("limit", "Günlük mesaj limiti")
