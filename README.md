@@ -2,7 +2,7 @@
 
 Şirket çalışanının Türkçe yazdığı IT sorununu anlayan (intent + NER), planlayan, bilgi
 tabanından çözen, gerekirse onay alarak ticket açan ve yöneticiye ticket istatistiklerini SQL
-ile raporlayan multi-agent sistem. 
+ile raporlayan multi-agent sistem.
 
 > Tüm kullanıcılar, ticketlar ve dokümanlar **sentetiktir**; gerçek kişi veya şirket verisi yoktur.
 
@@ -66,7 +66,7 @@ plan, tool çağrıları ve SQL'i arayüzde açılabilir.
 | Chainlit arayüzü, 3 demo rolü | ✅ | `services/ui/` |
 | Docker Compose ile uçtan uca yerel çalıştırma + 55 uç senaryo | ✅ | [evals/e2e_edge_cases.py](evals/e2e_edge_cases.py) (54/55; 1 bilinen NLU sınırı) |
 | arm64 imajlar, k3s manifest'leri, GitHub Actions deploy | ✅ kod, gerçek kümede denenmedi | `deploy/`, `.github/workflows/` |
-| **Public URL** | ⏳ sunucu bekleniyor | [Canlıya alma](#canlıya-alma) |
+| Public erişim (Cloudflare Tunnel) | ✅ geçici link ile denendi; kalıcı sunucu ⏳ | [Canlıya alma](#canlıya-alma) |
 
 ## Eval sonuçları (kural tabanlı NLU, LLM kapalı)
 
@@ -77,6 +77,9 @@ plan, tool çağrıları ve SQL'i arayüzde açılabilir.
 | Tool çağrı doğruluğu | ≥ %90 | %100 |
 | Guardrail bloklama | %100 | %100 (baseline %92) |
 | İlk yanıt p95 | < 3 sn | 78 ms (LLM çağrısı yok) |
+
+LLM açık pilot (yerel Ollama `qwen2.5:7b`, 14 senaryo): 14/14, ilk yanıt p95 22.7 sn —
+hızlı barındırılan modelle tam tur ⏳.
 
 Bu sayıların neyi kanıtlamadığı ve iterasyonların ayrıntısı: [docs/eval-report.md](docs/eval-report.md).
 
@@ -109,34 +112,36 @@ kural tabanlı yollarla çalışır (KB makalesi adımları, şablon SQL).
 
 ## Canlıya alma
 
-**Kalıcı ücretsiz link — Hugging Face Space (kart gerekmez):** New Space → SDK **Gradio** →
-CPU basic; [deploy/hf-space/](deploy/hf-space/) içindeki `app.py`, `requirements.txt`,
-`packages.txt` ve `README.md` dosyalarını Space'e yükleyin. Arayüz yine Chainlit'tir; `app.py`
-kodu GitHub'dan çeker, bağımlılıkları kurar ve tüm servisleri tek container'da başlatır (ilk açılış
-~7 dk). Repo public olmalı. 48 saat ziyaret almayan Space uyur, veriler her başlangıçta sıfırlanır.
+Sistem tek makinede `docker compose` ile çalışır; dışarıya [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+ile açılır (port açmak, sabit IP veya sertifika gerekmez). Link, makine açık ve container'lar ile
+`cloudflared` çalıştığı sürece erişilebilir. Public erişimden önce `.env` içindeki
+`AUTH_SECRET`, `CHAINLIT_AUTH_SECRET` ve `DEMO_ACCOUNTS` şifrelerini değiştirin.
 
-**En hızlısı — geçici public link (ücretsiz, domain gerekmez):** sistemi yerelde çalıştırıp
-[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
-ile açın. Bilgisayar açık kaldığı sürece `https://<rastgele>.trycloudflare.com` adresinden erişilir.
+**1. Geçici link (hesap ve domain gerekmez):**
 ```bash
 docker compose up -d
-cloudflared tunnel --url http://localhost:8080
+cloudflared tunnel --url http://localhost:8080   # https://<rastgele>.trycloudflare.com
 ```
-Public erişimde `.env` içindeki `AUTH_SECRET`, `CHAINLIT_AUTH_SECRET` ve `DEMO_ACCOUNTS`
-şifrelerini değiştirin.
+Adres `cloudflared` her başladığında değişir; deneme ve kısa demolar için.
 
-**Kalıcı, tek sunucu:** herhangi bir Linux VM'de (ör. Hetzner CAX11 arm64) aynı
-`docker compose up -d` + `cloudflared` (named tunnel) yeterli; Kubernetes gerekmez.
+**2. Sabit link (Cloudflare'e bağlı bir domain gerekir):**
+```bash
+cloudflared tunnel login
+cloudflared tunnel create helpdesk
+cloudflared tunnel route dns helpdesk demo.<domain>
+cloudflared tunnel run --url http://localhost:8080 helpdesk
+```
+Kendiliğinden ayağa kalkması için: compose servisleri `restart: unless-stopped` ile tanımlı
+(Docker açılınca geri gelir); Docker Desktop'ta *Start when you sign in* açık olsun;
+`cloudflared service install <token>` tüneli işletim sistemi servisi olarak kurar (token:
+Cloudflare Zero Trust → Networks → Tunnels).
 
-**k3s (Oracle Cloud Always Free Ampere VM + Cloudflare):**
-1. VM'e k3s: `curl -sfL https://get.k3s.io | sh -s - --tls-san <PUBLIC_IP>`.
-2. `kubectl -n helpdesk create secret generic helpdesk-secrets --from-env-file=.env.prod`
-   ([şablon](deploy/k8s/secrets.example.yaml)); Cloudflare Origin sertifikası →
-   `cloudflare-origin` TLS secret'ı; `deploy/k8s/ingress.yaml` içindeki host'u güncelle.
-3. GitHub → Settings → Secrets: `KUBECONFIG_B64`. GHCR paketleri private ise küme için
-   image pull secret gerekir.
-4. Actions → **Deploy** → *Run workflow* (sunucu hazır olana kadar deploy otomatik tetiklenmez):
-   arm64 imajlar GHCR'a → `kubectl apply -k deploy/` → migrate job.
+**3. Sunucu / Kubernetes:** herhangi bir Linux VM'de (ör. arm64) aynı compose + named tunnel
+yeterli. k3s için manifest'ler `deploy/k8s/` altında: secret'lar
+([şablon](deploy/k8s/secrets.example.yaml)) ve `deploy/k8s/ingress.yaml` host'u ayarlanır,
+GitHub'a `KUBECONFIG_B64` secret'ı eklenir, Actions → **Deploy** → *Run workflow* arm64 imajları
+GHCR'a basar, `kubectl apply -k deploy/` ve migrate job'ını çalıştırır. Bu yol gerçek bir
+kümede henüz denenmedi.
 
 ## Klasörler
 ```
@@ -147,6 +152,6 @@ services/ui          Chainlit
 ml/                  veri üretimi, Label Studio, eğitim, ONNX export, değerlendirme, model kartı
 db/                  alembic migration'ları, seed (kullanıcı, 500 ticket, 64 KB dokümanı)
 evals/               120 senaryo, run_eval.py, raporlar
-deploy/              k3s manifest'leri (kustomize), Prometheus/Grafana
+deploy/              k3s manifest'leri (kustomize), Prometheus/Grafana yapılandırması
 docs/                mimari, ADR'ler, eval raporu
 ```

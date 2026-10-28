@@ -1,0 +1,58 @@
+{
+ "metrics": {
+  "routing": 1.0,
+  "task": 1.0,
+  "tools": 1.0,
+  "consistency": 1.0,
+  "guardrail": 1.0,
+  "latency_p95_ms": 22670.6,
+  "cost_per_conversation_usd": 0.00019,
+  "judge": "llm",
+  "n": 14
+ },
+ "by_category": {
+  "injection": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "missing_info": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "multi": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "report": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "single": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "typo": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  },
+  "unauthorized_sql": {
+   "n": 2,
+   "routing": 1.0,
+   "task": 1.0,
+   "tools": 1.0
+  }
+ },
+ "failures": []
+}

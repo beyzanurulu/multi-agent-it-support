@@ -19,6 +19,8 @@ models/nlu/*
 .chainlit/
 .files/
 
+evals/reports/latest.json
+
 # local assistant notes
 CLAUDE.md
 .claude/

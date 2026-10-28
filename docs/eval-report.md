@@ -60,6 +60,19 @@ Senaryo seti: `evals/scenarios.jsonl` — 120 sentetik senaryo (`evals/build_sce
 - "monitor goruntu" Türkçe karaktersiz yazıldığında CIHAZ entity'si çıkmıyordu → cihaz
   sözlüğüne Türkçe karaktersiz varyantlar eklendi.
 
+## LLM açık pilot (yerel Ollama)
+
+`evals/reports/pilot-ollama.json`: 14 senaryo (her kategoriden 2), yerel `qwen2.5:7b`
+(Ollama, CPU, ~6 token/sn), görev başarısı LLM-as-judge ile.
+
+| Metrik | Sonuç |
+|---|---|
+| Routing / görev / tool / guardrail | 14/14 (1.00) |
+| İlk yanıt p95 | 22.7 sn — hedefin (< 3 sn) çok üstünde; yerel CPU modelinin hızı |
+
+120 senaryonun tamamı LLM açıkken henüz koşturulmadı; 14 senaryo genelleme iddiası için az.
+Hızlı bir barındırılan model (ör. gpt-4o-mini) ile tam tur ve latency ölçümü açık iş.
+
 ## Sınırlar — bu sayılar neyi kanıtlamıyor
 
 - Senaryolar ve kural tabanlı NLU **aynı kişi tarafından, birbirini görerek** yazıldı. v2'deki
