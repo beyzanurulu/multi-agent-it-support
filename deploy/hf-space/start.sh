@@ -3,10 +3,10 @@
 # mcp-tools, nlu-service, agent-api in the background, Chainlit on $PORT (7860).
 # The data is synthetic and re-seeded on every start.
 set -euo pipefail
-cd /app
+cd "$(dirname "$0")/../.."
 
 export PGDATA=/tmp/pgdata
-PG=/usr/lib/postgresql/16/bin
+PG=${PG_BIN:-/usr/lib/postgresql/16/bin}
 if [ ! -s "$PGDATA/PG_VERSION" ]; then
   # trust: Postgres only listens on 127.0.0.1 inside the container
   "$PG/initdb" -D "$PGDATA" -U postgres --auth=trust >/dev/null
