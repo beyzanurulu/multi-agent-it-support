@@ -109,6 +109,12 @@ kural tabanlı yollarla çalışır (KB makalesi adımları, şablon SQL).
 
 ## Canlıya alma
 
+**Kalıcı ücretsiz link — Hugging Face Space (kart gerekmez):** New Space → SDK **Gradio** →
+CPU basic; [deploy/hf-space/](deploy/hf-space/) içindeki `app.py`, `requirements.txt`,
+`packages.txt` ve `README.md` dosyalarını Space'e yükleyin. Arayüz yine Chainlit'tir; `app.py`
+kodu GitHub'dan çeker, bağımlılıkları kurar ve tüm servisleri tek container'da başlatır (ilk açılış
+~7 dk). Repo public olmalı. 48 saat ziyaret almayan Space uyur, veriler her başlangıçta sıfırlanır.
+
 **En hızlısı — geçici public link (ücretsiz, domain gerekmez):** sistemi yerelde çalıştırıp
 [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
 ile açın. Bilgisayar açık kaldığı sürece `https://<rastgele>.trycloudflare.com` adresinden erişilir.
