@@ -155,3 +155,6 @@ evals/               120 senaryo, run_eval.py, raporlar
 deploy/              k3s manifest'leri (kustomize), Prometheus/Grafana yapılandırması
 docs/                mimari, ADR'ler, eval raporu
 ```
+
+## Lisans
+[MIT](LICENSE) © 2026 Beyza Nur Ulu
