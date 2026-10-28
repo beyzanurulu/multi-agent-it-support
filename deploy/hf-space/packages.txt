@@ -1,4 +1,2 @@
-postgresql-15
-postgresql-15-pgvector
 git
 curl

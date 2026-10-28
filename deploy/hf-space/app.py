@@ -28,10 +28,14 @@ subprocess.run(
      "--extra", "db", "--extra", "ui", "--extra", "embeddings"],
     cwd=APP, env=env, check=True,
 )
+# Debian has no pgvector package; pgserver ships Postgres 16 with pgvector and needs no root.
+subprocess.run(["uv", "pip", "install", "--python", str(APP / ".venv"), "pgserver==0.1.4"],
+               cwd=APP, env=env, check=True)
+PG_BIN = APP / ".venv/lib/python3.12/site-packages/pgserver/pginstall/bin"
 
 env.update(
     PATH=f"{APP / '.venv' / 'bin'}:{env['PATH']}",
-    PG_BIN="/usr/lib/postgresql/15/bin",
+    PG_BIN=str(PG_BIN),
     DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/helpdesk",
     READONLY_DATABASE_URL="postgresql://helpdesk_readonly:readonly@127.0.0.1:5432/helpdesk",
     NLU_URL="http://127.0.0.1:8002",
