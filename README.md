@@ -6,7 +6,7 @@ ile raporlayan multi-agent sistem.
 
 > Tüm kullanıcılar, ticketlar ve dokümanlar **sentetiktir**; gerçek kişi veya şirket verisi yoktur.
 
-## Mimari (2 dakikada)
+## Mimari 
 
 ```
  Chainlit UI ──WebSocket──▶ agent-api (FastAPI + LangGraph)
