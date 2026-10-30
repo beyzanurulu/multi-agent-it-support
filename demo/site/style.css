@@ -1,0 +1,123 @@
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #e1e4ea;
+  --accent: #2f5bd3; --accent-text: #ffffff; --user: #2f5bd3; --user-text: #ffffff;
+  --step: #f1f3f7; --ok: #1d7a46; --warn: #a15c00; --bad: #b42318; --code: #eef1f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b323d;
+    --accent: #7a9cff; --accent-text: #0d1220; --user: #3b5fc9; --user-text: #ffffff;
+    --step: #222833; --ok: #5cc98a; --warn: #f0b45a; --bad: #ff8a80; --code: #10141a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1a1f27; --text: #e6e9ef; --muted: #9aa3b2; --line: #2b323d;
+  --accent: #7a9cff; --accent-text: #0d1220; --user: #3b5fc9; --user-text: #ffffff;
+  --step: #222833; --ok: #5cc98a; --warn: #f0b45a; --bad: #ff8a80; --code: #10141a;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--accent); }
+.top {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.top h1 { margin: 0; font-size: 20px; }
+.top p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.repo {
+  padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; text-decoration: none;
+  color: var(--text); white-space: nowrap;
+}
+.notice {
+  margin: 16px auto 0; max-width: 1180px; padding: 10px 14px; border-radius: 8px;
+  background: var(--step); color: var(--muted); font-size: 13.5px; width: calc(100% - 32px);
+}
+.notice strong { color: var(--text); }
+.layout {
+  display: grid; grid-template-columns: 260px 1fr; gap: 16px; max-width: 1180px;
+  margin: 16px auto; padding: 0 16px;
+}
+.scenarios, .chat {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+}
+.scenarios { padding: 14px; align-self: start; position: sticky; top: 16px; }
+.scenarios h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); margin: 0 0 8px; }
+.scenarios ul { list-style: none; margin: 0; padding: 0; }
+.scenarios button {
+  width: 100%; text-align: left; background: none; border: 0; padding: 8px 10px;
+  border-radius: 8px; color: var(--text); font: inherit; cursor: pointer;
+}
+.scenarios button:hover { background: var(--step); }
+.scenarios button[aria-current="true"] { background: var(--accent); color: var(--accent-text); }
+.scenarios button small { display: block; opacity: .75; font-size: 12px; }
+.meta { margin: 14px 0 0; font-size: 12px; color: var(--muted);
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+.meta dt { font-weight: 600; } .meta dd { margin: 0; }
+.chat { display: flex; flex-direction: column; min-height: 70vh; }
+.chat-head {
+  display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.chat-head h2 { margin: 0; font-size: 17px; }
+.chat-head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+.role { align-self: start; font-size: 12px; padding: 3px 10px; border-radius: 99px;
+  background: var(--step); white-space: nowrap; }
+.log { flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 10px; overflow-x: auto; }
+.bubble-user {
+  align-self: flex-end; max-width: 80%; background: var(--user); color: var(--user-text);
+  padding: 9px 14px; border-radius: 14px 14px 4px 14px;
+}
+.msg { max-width: 92%; }
+.msg .author { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 2px; }
+.msg .body { background: var(--step); padding: 10px 14px; border-radius: 4px 14px 14px 14px; }
+.msg .body p { margin: 0 0 6px; } .msg .body p:last-child { margin-bottom: 0; }
+.msg.guardrail .author { color: var(--bad); }
+details.step {
+  font-size: 13.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px;
+}
+details.step summary { cursor: pointer; }
+details.step .detail { margin-top: 6px; color: var(--text); }
+details.step.tool summary::before { content: "🔧 "; }
+details.step.guard summary::before { content: "🛡️ "; }
+details.step.guard { border-left-color: var(--bad); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--code);
+  border: 1px solid var(--line); }
+table { border-collapse: collapse; margin: 6px 0; font-size: 13px; }
+th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; }
+pre { background: var(--code); padding: 8px 10px; border-radius: 6px; overflow-x: auto;
+  white-space: pre-wrap; }
+.approval { border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px; max-width: 92%; }
+.approval h3 { margin: 0 0 6px; font-size: 15px; }
+.approval .actions { display: flex; gap: 8px; margin-top: 10px; }
+.chosen { font-size: 13px; color: var(--muted); }
+button.primary, .composer button {
+  background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px;
+  padding: 8px 14px; font: inherit; cursor: pointer;
+}
+button.ghost, .composer button.ghost {
+  background: none; color: var(--text); border: 1px solid var(--line);
+}
+button:disabled { opacity: .5; cursor: default; }
+.composer { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.composer input {
+  flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--text); font: inherit;
+}
+.end { text-align: center; color: var(--muted); font-size: 13px; }
+.foot { max-width: 1180px; margin: 0 auto 32px; padding: 0 16px; color: var(--muted);
+  font-size: 12.5px; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .scenarios { position: static; }
+  .top { padding: 12px 16px; }
+  .bubble-user, .msg, .approval { max-width: 100%; }
+  .composer { flex-wrap: wrap; }
+  .composer input { flex-basis: 100%; }
+}

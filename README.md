@@ -6,6 +6,10 @@ ile raporlayan multi-agent sistem.
 
 > Tüm kullanıcılar, ticketlar ve dokümanlar **sentetiktir**; gerçek kişi veya şirket verisi yoktur.
 
+**Demo:** https://beyzanurulu.github.io/multi-agent-it-support/ — gerçek sistemden kaydedilmiş
+konuşmaları adım adım oynatan statik sayfa (NLU çıktısı, plan, tool çağrıları, onay adımı).
+Kayıtlar her değişiklikte CI'da yeniden üretilir (`demo/record.py`, `.github/workflows/pages.yml`).
+
 ## Mimari 
 
 ```

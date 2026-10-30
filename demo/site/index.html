@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IT Destek Ajanları — Demo</title>
+<meta name="description" content="Türkçe IT destek multi-agent sisteminin gerçek çalıştırmalardan kaydedilmiş etkileşimli demosu.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f5bd3'/%3E%3Cpath d='M9 11h14M9 16h10M9 21h7' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Türkçe IT Destek Ajanları</h1>
+    <p>Supervisor · Triage · Solution · Ticket · Analytics — LangGraph + FastMCP + NLU</p>
+  </div>
+  <a class="repo" href="https://github.com/beyzanurulu/multi-agent-it-support">GitHub</a>
+</header>
+<div class="notice" role="note">
+  <strong>Kayıtlı demo.</strong> Bu sayfa statik: aşağıdaki konuşmalar gerçek sistemin
+  <span id="meta-commit">—</span> commit'inde çalıştırılmasıyla kaydedildi ve adım adım
+  oynatılıyor. Kendi mesajınızı yazamazsınız; onay adımlarında iki seçeneği de deneyebilirsiniz.
+</div>
+<main class="layout">
+  <nav class="scenarios" aria-label="Senaryolar">
+    <h2>Senaryolar</h2>
+    <ul id="scenario-list"></ul>
+    <dl class="meta">
+      <dt>NLU</dt><dd id="meta-nlu">—</dd>
+      <dt>LLM</dt><dd id="meta-llm">—</dd>
+      <dt>Kayıt</dt><dd id="meta-date">—</dd>
+    </dl>
+  </nav>
+  <section class="chat" aria-live="polite">
+    <div class="chat-head">
+      <div>
+        <h2 id="sc-title">Yükleniyor…</h2>
+        <p id="sc-desc"></p>
+      </div>
+      <span class="role" id="sc-role"></span>
+    </div>
+    <div class="log" id="log"></div>
+    <form class="composer" id="composer">
+      <input id="next-text" readonly aria-label="Sıradaki kayıtlı mesaj">
+      <button type="submit" id="send">Gönder</button>
+      <button type="button" id="restart" class="ghost">Baştan</button>
+    </form>
+  </section>
+</main>
+<footer class="foot">
+  Tüm kullanıcılar, ticketlar ve dokümanlar sentetiktir. Kaynak kod, eval raporu ve canlıya
+  alma adımları <a href="https://github.com/beyzanurulu/multi-agent-it-support">repoda</a>.
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

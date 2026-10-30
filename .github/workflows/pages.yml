@@ -1,0 +1,68 @@
+name: Demo (GitHub Pages)
+
+# Records real agent runs against a freshly seeded Postgres and publishes the static
+# replay page in demo/site. Re-runs whenever the agents, tools, NLU or the demo change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "db/**"
+      - "demo/**"
+      - "uv.lock"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: helpdesk
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/helpdesk
+      READONLY_DATABASE_URL: postgresql://helpdesk_readonly:readonly@localhost:5432/helpdesk
+      EMBEDDING_PROVIDER: hashing
+      OPENAI_API_KEY: ""
+      OLLAMA_URL: ""
+      LANGSMITH_TRACING: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen --extra agent --extra mcp --extra nlu --extra db
+      - name: Migrate + seed
+        run: |
+          uv run alembic -c db/alembic.ini upgrade head
+          uv run python db/seed/seed.py
+      - name: Record demo conversations
+        run: uv run python demo/record.py
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

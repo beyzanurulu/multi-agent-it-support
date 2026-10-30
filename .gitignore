@@ -24,3 +24,4 @@ evals/reports/latest.json
 # local assistant notes
 CLAUDE.md
 .claude/
+demo/site/recordings.json
