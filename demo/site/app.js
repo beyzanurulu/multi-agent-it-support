@@ -218,7 +218,7 @@ function select(sc) {
 
 async function init() {
   try {
-    data = await (await fetch("recordings.json", { cache: "no-store" })).json();
+    data = await (await fetch(`recordings.json?v=${Date.now()}`, { cache: "no-store" })).json();
   } catch (err) {
     message(`Kayıtlar yüklenemedi: ${err}`);
     return;

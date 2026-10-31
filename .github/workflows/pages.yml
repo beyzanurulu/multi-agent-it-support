@@ -53,6 +53,8 @@ jobs:
           uv run python db/seed/seed.py
       - name: Record demo conversations
         run: uv run python demo/record.py
+      - name: Cache-bust static assets
+        run: sed -i "s/__V__/${GITHUB_SHA::7}/g" demo/site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: demo/site
