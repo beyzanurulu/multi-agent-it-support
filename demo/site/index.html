@@ -3,54 +3,53 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IT Destek Ajanları — Demo</title>
+<title>IT Destek Asistanı</title>
 <meta name="description" content="Türkçe IT destek multi-agent sisteminin gerçek çalıştırmalardan kaydedilmiş etkileşimli demosu.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f5bd3'/%3E%3Cpath d='M9 11h14M9 16h10M9 21h7' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%23f80061'%3E%3Ccircle cx='12' cy='5' r='3.2'/%3E%3Ccircle cx='12' cy='19' r='3.2'/%3E%3Ccircle cx='5' cy='12' r='3.2'/%3E%3Ccircle cx='19' cy='12' r='3.2'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand">
-    <h1>Türkçe IT Destek Ajanları</h1>
-    <p>Supervisor · Triage · Solution · Ticket · Analytics — LangGraph + FastMCP + NLU</p>
+  <div class="left">
+    <button class="icon" id="restart" title="Yeni sohbet (baştan)" aria-label="Yeni sohbet">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <label class="profile">
+      <span class="sr-only">Senaryo</span>
+      <select id="scenario"></select>
+    </label>
   </div>
-  <a class="repo" href="https://github.com/beyzanurulu/multi-agent-it-support">GitHub</a>
+  <div class="right">
+    <a class="readme" href="https://github.com/beyzanurulu/multi-agent-it-support">Readme</a>
+    <button class="icon" id="theme" title="Tema" aria-label="Temayı değiştir">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    </button>
+    <span class="avatar" id="avatar" title="">C</span>
+  </div>
 </header>
-<div class="notice" role="note">
-  <strong>Kayıtlı demo.</strong> Bu sayfa statik: aşağıdaki konuşmalar gerçek sistemin
-  <span id="meta-commit">—</span> commit'inde çalıştırılmasıyla kaydedildi ve adım adım
-  oynatılıyor. Kendi mesajınızı yazamazsınız; onay adımlarında iki seçeneği de deneyebilirsiniz.
-</div>
-<main class="layout">
-  <nav class="scenarios" aria-label="Senaryolar">
-    <h2>Senaryolar</h2>
-    <ul id="scenario-list"></ul>
-    <dl class="meta">
-      <dt>NLU</dt><dd id="meta-nlu">—</dd>
-      <dt>LLM</dt><dd id="meta-llm">—</dd>
-      <dt>Kayıt</dt><dd id="meta-date">—</dd>
-    </dl>
-  </nav>
-  <section class="chat" aria-live="polite">
-    <div class="chat-head">
-      <div>
-        <h2 id="sc-title">Yükleniyor…</h2>
-        <p id="sc-desc"></p>
-      </div>
-      <span class="role" id="sc-role"></span>
-    </div>
-    <div class="log" id="log"></div>
-    <form class="composer" id="composer">
-      <input id="next-text" readonly aria-label="Sıradaki kayıtlı mesaj">
-      <button type="submit" id="send">Gönder</button>
-      <button type="button" id="restart" class="ghost">Baştan</button>
-    </form>
-  </section>
+
+<main class="thread">
+  <div class="log" id="log" aria-live="polite"></div>
 </main>
-<footer class="foot">
-  Tüm kullanıcılar, ticketlar ve dokümanlar sentetiktir. Kaynak kod, eval raporu ve canlıya
-  alma adımları <a href="https://github.com/beyzanurulu/multi-agent-it-support">repoda</a>.
-</footer>
+
+<div class="dock">
+  <form class="composer" id="composer">
+    <input id="next-text" readonly aria-label="Sıradaki kayıtlı mesaj" placeholder="Type your message here...">
+    <div class="composer-row">
+      <span class="clip" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+      </span>
+      <button type="submit" id="send" class="send" aria-label="Gönder">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </form>
+  <p class="disclaimer">
+    Kayıtlı demo: gerçek sistemin <span id="meta-commit">—</span> commit'inde kaydedilen
+    konuşmalar oynatılır (NLU: <span id="meta-nlu">—</span>, LLM: <span id="meta-llm">—</span>).
+    Tüm veriler sentetiktir.
+  </p>
+</div>
 <script src="app.js"></script>
 </body>
 </html>
