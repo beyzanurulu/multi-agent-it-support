@@ -6,8 +6,12 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --extra nlu
 COPY services/nlu-service ./services/nlu-service
-# Exported BERTurk model (optional; without it the rule-based backend is used).
+# Exported BERTurk model: models/nlu from the build context if present, otherwise the latest
+# GitHub Release asset (ml/fetch_model.py). Without either the rule-based backend is used.
 COPY models/nlu ./models/nlu
+COPY ml/fetch_model.py ./ml/fetch_model.py
+ARG FETCH_NLU_MODEL=true
+RUN if [ "$FETCH_NLU_MODEL" = "true" ]; then python ml/fetch_model.py --dest models/nlu; fi
 ENV PYTHONPATH=/app/services/nlu-service NLU_MODEL_DIR=/app/models/nlu
 USER 1000
 EXPOSE 8002

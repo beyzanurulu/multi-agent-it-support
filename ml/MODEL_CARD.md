@@ -39,7 +39,14 @@
   görmediği bir değeri tanıyabiliyor mu, ayrıca ölçülmez.
 - Kişi adları, departmanlar ve tüm talepler sentetiktir; gerçek kişi/şirket verisi yoktur.
 
-## Eğitim (önerilen)
+## Eğitim
+
+**Kolay yol:** [`ml/colab_train.ipynb`](colab_train.ipynb) — Colab'da T4 GPU ile aç, `clean.jsonl`'u
+yükle, *Tümünü çalıştır*. Çıktı: `nlu-model.zip` (→ GitHub Release, tag `nlu-v*`) ve
+`nlu-reports.zip`. Release yayınlanınca `ml/fetch_model.py` modeli `models/nlu/`'ya indirir;
+`nlu-service` imajı ve demo sayfası bunu otomatik yapar.
+
+Elle (aynı adımlar):
 ```bash
 python ml/data/generate.py --n 3000 --llm 0.5 --provider ollama     # veya --provider openai
 python ml/data/clean.py ml/data/raw.jsonl ml/data/clean.jsonl

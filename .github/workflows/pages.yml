@@ -11,6 +11,8 @@ on:
       - "demo/**"
       - "uv.lock"
       - ".github/workflows/pages.yml"
+  release:
+    types: [published]   # a new NLU model release re-records the demo with it
   workflow_dispatch:
 
 permissions:
@@ -51,6 +53,8 @@ jobs:
         run: |
           uv run alembic -c db/alembic.ini upgrade head
           uv run python db/seed/seed.py
+      - name: Fetch the trained NLU model (falls back to rules if not released yet)
+        run: python ml/fetch_model.py
       - name: Record demo conversations
         run: uv run python demo/record.py
       - name: Cache-bust static assets
