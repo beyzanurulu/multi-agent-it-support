@@ -50,6 +50,8 @@ def report(rows: list[dict], stats: dict) -> str:
     lines = ["# Veri kalitesi raporu", "", f"- Örnek: {len(rows)}",
              f"- Doğrulanmış: {sum(r.get('verified', False) for r in rows)}",
              f"- Çoklu niyet: {sum(len(r['intents']) > 1 for r in rows)}",
+             f"- Farklı şablon: {len({t for r in rows for t in r.get('templates', [])})}",
+             f"- LLM ile yeniden ifade edilmiş: {sum(r.get('source') == 'llm' for r in rows)}",
              f"- Atılan: {stats}", "", "## Intent dağılımı", "", "| Intent | n | % |", "|---|---|---|"]
     total = sum(intents.values())
     lines += [f"| {k} | {intents.get(k, 0)} | {100 * intents.get(k, 0) / total:.1f} |"

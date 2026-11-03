@@ -41,12 +41,13 @@ def test_pipeline_end_to_end(tmp_path):
     raw, clean, splits = tmp_path / "raw.jsonl", tmp_path / "clean.jsonl", tmp_path / "splits"
     run(ML / "data/generate.py", "--n", "400", "--out", raw)
     rows = [json.loads(line) for line in raw.read_text().splitlines()]
-    for row in rows[:80]:  # stand-in for Label Studio verified rows
-        row["verified"] = True
-    raw.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows))
     run(ML / "data/clean.py", raw, clean, "--report", tmp_path / "report.md")
-    run(ML / "data/split.py", clean, splits)
-    assert all(json.loads(line)["verified"] for line in (splits / "test.jsonl").open())
+    run(ML / "data/split.py", clean, splits, "--allow-unverified-test")
+
+    def templates(name):
+        return {t for line in (splits / f"{name}.jsonl").open() for t in json.loads(line)["templates"]}
+
+    assert templates("test") and not templates("test") & templates("train")  # no template leakage
 
     encoder = tmp_path / "tiny"
     make_tiny_encoder(encoder, [r["text"] for r in rows])

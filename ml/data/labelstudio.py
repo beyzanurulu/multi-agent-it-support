@@ -3,7 +3,8 @@
 export: JSONL -> Label Studio tasks with pre-labels (predictions) to correct by hand.
 import: Label Studio JSON export -> JSONL with verified=true.
 
-    python ml/data/labelstudio.py export ml/data/clean.jsonl ml/data/ls_tasks.json --n 600
+    python ml/data/labelstudio.py export ml/data/clean.jsonl ml/data/ls_tasks.json --n 600 \
+        --heldout-only      # only rows from test/val templates: those are what must be verified
     python ml/data/labelstudio.py import ls_export.json ml/data/verified.jsonl
     python ml/data/labelstudio.py merge ml/data/clean.jsonl ml/data/verified.jsonl ml/data/clean.jsonl
 """
@@ -15,6 +16,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import read_jsonl, write_jsonl
 
 
@@ -25,7 +27,8 @@ def to_task(row: dict) -> dict:
                 "value": {"start": e["start"], "end": e["end"],
                           "text": row["text"][e["start"]:e["end"]], "labels": [e["label"]]}}
                for e in row["entities"]]
-    return {"data": {"id": row["id"], "text": row["text"]},
+    return {"data": {"id": row["id"], "text": row["text"],
+                     "templates": row.get("templates", [])},
             "predictions": [{"model_version": row.get("source", "template"), "result": result}]}
 
 
@@ -41,7 +44,8 @@ def from_task(task: dict) -> dict | None:
             v = item["value"]
             entities.append({"start": v["start"], "end": v["end"], "label": v["labels"][0]})
     return {"id": task["data"]["id"], "text": task["data"]["text"], "intents": intents,
-            "entities": entities, "source": "label_studio", "verified": True}
+            "entities": entities, "templates": task["data"].get("templates", []),
+            "source": "label_studio", "verified": True}
 
 
 def main() -> None:
@@ -51,6 +55,9 @@ def main() -> None:
     exp.add_argument("src")
     exp.add_argument("dst")
     exp.add_argument("--n", type=int, default=600)
+    exp.add_argument("--heldout-only", action="store_true",
+                     help="export only rows whose templates split.py holds out (test first)")
+    exp.add_argument("--seed", type=int, default=7, help="must match split.py --seed")
     imp = sub.add_parser("import")
     imp.add_argument("src")
     imp.add_argument("dst")
@@ -63,6 +70,14 @@ def main() -> None:
     if args.cmd == "export":
         rows = read_jsonl(args.src)
         random.Random(3).shuffle(rows)
+        if args.heldout_only:
+            from split import assign_templates
+
+            where = assign_templates(rows, args.seed)
+            part = {id(r): {where[t] for t in r.get("templates", [])} for r in rows}
+            test = [r for r in rows if part[id(r)] == {"test"}]
+            val = [r for r in rows if part[id(r)] == {"val"}]
+            rows = test + val
         tasks = [to_task(r) for r in rows[:args.n]]
         Path(args.dst).write_text(json.dumps(tasks, ensure_ascii=False, indent=1), "utf-8")
         print(f"exported {len(tasks)} tasks")

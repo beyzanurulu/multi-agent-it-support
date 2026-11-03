@@ -9,6 +9,7 @@ verbatim or the paraphrase is dropped (spans are re-located by string search).
 """
 
 import argparse
+import os
 import random
 import re
 import sys
@@ -20,18 +21,26 @@ from common import write_jsonl
 VALUES = {
     "YAZILIM": ["Outlook", "Teams", "Excel", "Word", "VPN", "GlobalProtect", "SAP", "Chrome",
                 "Adobe Reader", "Photoshop", "OneDrive", "Zoom", "SharePoint", "AutoCAD",
-                "Visual Studio", "Office"],
+                "Visual Studio", "Office", "Power BI", "Jira", "Slack", "Webex", "Acrobat",
+                "Logo Tiger", "Netsis", "Edge", "Firefox", "AnyDesk", "Outlook Web"],
     "CIHAZ": ["laptop", "bilgisayar", "yazıcı", "monitör", "klavye", "mouse", "telefon",
-              "dock", "kulaklık", "kamera", "tablet"],
+              "dock", "kulaklık", "kamera", "tablet", "dizüstü", "masaüstü", "projektör",
+              "tarayıcı cihazı", "docking station", "ikinci ekran", "web kamerası"],
     "HATA_KODU": ["0x800CCC0E", "0x80070005", "0x0000011b", "0x80070643", "809", "691",
-                  "ERR_CERT_AUTHORITY_INVALID", "0x8004010F"],
+                  "ERR_CERT_AUTHORITY_INVALID", "0x8004010F", "0x80004005", "0xC004F074",
+                  "0x80070057", "800", "720", "ERR_CONNECTION_TIMED_OUT", "0x0000007E"],
     "DEPARTMAN": ["Muhasebe", "Finans", "İnsan Kaynakları", "Satış", "Pazarlama", "Hukuk",
-                  "Operasyon", "Satın Alma", "Müşteri Hizmetleri"],
+                  "Operasyon", "Satın Alma", "Müşteri Hizmetleri", "Bilgi İşlem", "Lojistik",
+                  "Üretim", "Kalite", "Ar-Ge", "İç Denetim"],
     "KISI": ["Ayşe Yılmaz", "Mehmet Kaya", "Zeynep Demir", "Ahmet Şahin", "Elif Çelik",
-             "Burak Aydın", "Selin Öztürk", "Can Arslan"],
-    "IP_ADRESI": ["10.0.0.15", "192.168.1.20", "172.16.4.8", "10.10.2.33"],
+             "Burak Aydın", "Selin Öztürk", "Can Arslan", "Deniz Koç", "Ece Kurt",
+             "Murat Polat", "Gamze Aksoy", "Okan Erdem", "Seda Güneş", "Tolga Avcı",
+             "Hande Yalçın"],
+    "IP_ADRESI": ["10.0.0.15", "192.168.1.20", "172.16.4.8", "10.10.2.33", "10.20.30.40",
+                  "192.168.0.105", "172.31.255.2", "10.1.12.250"],
     "TARIH": ["dün", "bugün", "bu sabah", "dün akşam", "geçen hafta", "12.11.2026",
-              "3 Kasım", "pazartesi"],
+              "3 Kasım", "pazartesi", "dünden beri", "iki gündür", "sabahtan beri",
+              "cuma günü", "1 Aralık", "05.01.2027", "geçen ay", "öğleden sonra"],
 }
 
 # {SLOT} placeholders are entity slots; plain text otherwise.
@@ -137,6 +146,151 @@ PREFIXES = ["", "", "", "Merhaba, ", "Selam, ", "İyi günler, ", "Merhabalar ",
 SUFFIXES = ["", "", "", " yardımcı olur musunuz?", " lütfen yardım", " acil!", " teşekkürler.",
             " ne yapmalıyım?", " bakabilir misiniz", " sabahtan beri böyle", " çok acil",
             " işlerim aksıyor"]
+# Second round of templates (wider phrasing; the first set alone was only 71 sentences).
+TEMPLATES["password_reset"] += [
+    "Şifremi hatırlamıyorum, {YAZILIM} girişi yapamıyorum",
+    "Parolamın süresi {TARIH} doldu, yenilemem gerek",
+    "{YAZILIM} bana sürekli şifre değiştir diyor ama kabul etmiyor",
+    "Yeni şifre belirledim ama {CIHAZ} eski şifreyi istiyor",
+    "Şifre sıfırlama maili gelmiyor",
+    "{KISI} şifresini unutmuş, yardımcı olabilir misiniz",
+    "Domain şifremi değiştirmem lazım",
+    "Self servis portalda şifre yenileme hata veriyor",
+    "Geçici şifre verildi ama giriş yapamıyorum",
+    "{YAZILIM} parolamı nasıl güncellerim",
+    "Şifremi üç kere yanlış girdim, yenisini almak istiyorum",
+    "{DEPARTMAN} biriminden yeni başladım, ilk şifremi nasıl alırım",
+]
+TEMPLATES["account_locked"] += [
+    "Hesabım bloke oldu",
+    "Kullanıcım kilitli görünüyor, {YAZILIM} açılmıyor",
+    "{TARIH} hesabım askıya alınmış",
+    "Giriş ekranında hesabınız kilitlendi uyarısı çıkıyor",
+    "{CIHAZ} oturum açmama izin vermiyor, hesap kilitli diyor",
+    "Hesabımın kilidini açar mısınız",
+    "MFA onayını kaçırdım hesabım kilitlendi",
+    "Ard arda yanlış deneme yüzünden hesabım donduruldu",
+    "{KISI} adlı kullanıcının hesabı kilitlenmiş",
+    "Sabah girerken hesap devre dışı uyarısı aldım",
+    "{DEPARTMAN} ortak hesabı kilitlendi",
+]
+TEMPLATES["vpn_issue"] += [
+    "Uzaktan çalışırken şirket ağına bağlanamıyorum",
+    "VPN bağlantısı {TARIH} kopup duruyor",
+    "VPN'e bağlanınca internetim gidiyor",
+    "{YAZILIM} kimlik doğrulama hatası veriyor",
+    "Evden sunuculara erişemiyorum, tünel kurulmuyor",
+    "VPN istemcisi {HATA_KODU} koduyla duruyor",
+    "Otelden şirket ağına giremiyorum",
+    "VPN çok yavaş, dosyalar açılmıyor",
+    "{CIHAZ} üzerinde VPN profili görünmüyor",
+    "VPN sertifikası süresi dolmuş uyarısı alıyorum",
+    "Bağlanıyor gibi yapıp sonra düşüyor, VPN",
+]
+TEMPLATES["email_issue"] += [
+    "E-postalarım gelmiyor",
+    "{YAZILIM} sürekli şifre soruyor",
+    "Gönderdiğim mailler {HATA_KODU} hatasıyla geri dönüyor",
+    "Takvim davetleri {YAZILIM} uygulamasında görünmüyor",
+    "{CIHAZ} üzerinde mail senkronize olmuyor",
+    "Posta kutum {TARIH} kotayı aştı diyor",
+    "Ek dosya gönderemiyorum, boyut hatası veriyor",
+    "Paylaşılan posta kutusundaki mailleri göremiyorum",
+    "Outlook arama çalışmıyor",
+    "Spam klasörüne düşen önemli mailler var",
+    "İmzam maillerde görünmüyor",
+]
+TEMPLATES["software_install"] += [
+    "{YAZILIM} programına ihtiyacım var, yükleyebilir misiniz",
+    "Software Center'da {YAZILIM} çıkmıyor",
+    "{YAZILIM} güncellemesi {HATA_KODU} hatası veriyor",
+    "{CIHAZ} üzerine yazılım kurma yetkim yok",
+    "{DEPARTMAN} için {YAZILIM} lisansı talep ediyorum",
+    "Eski {YAZILIM} sürümünü kaldırıp yenisini kurmak istiyorum",
+    "Kurulum yarıda kalıyor, ne yapmalıyım",
+    "{YAZILIM} eklentisi yüklenmiyor",
+    "Yeni projeye başladım, {YAZILIM} lazım",
+    "{TARIH} itibarıyla {YAZILIM} lisansım bitmiş",
+]
+TEMPLATES["hardware_issue"] += [
+    "{CIHAZ} şarj olmuyor",
+    "{CIHAZ} çok yavaş çalışıyor",
+    "{CIHAZ} ses vermiyor",
+    "{CIHAZ} kendi kendine yeniden başlıyor",
+    "{CIHAZ} mavi ekran veriyor, {HATA_KODU}",
+    "{CIHAZ} ekranında çizgiler var",
+    "Yeni {CIHAZ} talep etmek istiyorum, mevcut olan bozuk",
+    "{CIHAZ} fanı çok ses yapıyor",
+    "{CIHAZ} USB girişleri çalışmıyor",
+    "{KISI} için {CIHAZ} arızalı",
+    "{CIHAZ} kırıldı, değişim lazım",
+]
+TEMPLATES["network_issue"] += [
+    "Kablosuz ağ görünmüyor",
+    "Ethernet takılı ama bağlantı yok",
+    "İnternet sayfaları çok geç açılıyor",
+    "{IP_ADRESI} adresli sunucuya erişemiyorum",
+    "Ağda IP çakışması uyarısı alıyorum, {IP_ADRESI}",
+    "{DEPARTMAN} katında Wi-Fi çekmiyor",
+    "Misafir ağına bağlanılmıyor",
+    "Tarayıcı {HATA_KODU} hatası veriyor, hiçbir site açılmıyor",
+    "{TARIH} ağ paylaşımlarına ulaşamıyorum",
+    "Ofis interneti kesik kesik geliyor",
+    "Toplantı odasında ağ bağlantısı yok",
+]
+TEMPLATES["access_request"] += [
+    "{YAZILIM} uygulamasında admin yetkisi lazım",
+    "{DEPARTMAN} ortak klasörünü göremiyorum, izin verir misiniz",
+    "Yeni ekip arkadaşım {KISI} için {YAZILIM} hesabı açılması lazım",
+    "{YAZILIM} raporlarına erişimim kapanmış",
+    "Proje klasörüne yazma iznine ihtiyacım var",
+    "{YAZILIM} için okuma yetkisi talep ediyorum",
+    "{TARIH} işe başlayan stajyere erişim tanımlanmalı",
+    "Ayrılan çalışanın dosyalarına erişim istiyorum",
+    "{DEPARTMAN} SharePoint sitesine ekler misiniz",
+    "Sunucuya uzak masaüstü erişimi istiyorum, {IP_ADRESI}",
+    "{YAZILIM} modülünde yetkim yetersiz diyor",
+]
+TEMPLATES["printer_issue"] += [
+    "Yazıcı sürekli kağıt sıkıştı diyor",
+    "Çıktılar soluk ve çizgili geliyor",
+    "{DEPARTMAN} yazıcısı listede görünmüyor",
+    "Renkli çıktı alamıyorum",
+    "Yazıcı sırada bekliyor ama yazdırmıyor",
+    "Tarayıcıdan taranan belgeler maile gelmiyor",
+    "Yazıcı sürücüsü yüklenmiyor {HATA_KODU}",
+    "{CIHAZ} üzerinden yazıcıya bağlanamıyorum",
+    "Kartlı yazdırma çalışmıyor",
+    "Yazıcı toner değiştir uyarısı veriyor ama yeni toner takılı",
+    "Çift taraflı çıktı alamıyorum",
+]
+TEMPLATES["ticket_status"] += [
+    "Bildirdiğim arıza çözüldü mü",
+    "INC-{NUM} için bir gelişme var mı",
+    "Açık taleplerimin listesini görebilir miyim",
+    "{TARIH} açtığım kaydın son durumu ne",
+    "Talebim hangi ekipte bekliyor",
+    "INC-{NUM} neden hala açık",
+]
+TEMPLATES["report_request"] += [
+    "Geçen hafta kaç ticket kapatıldı",
+    "{DEPARTMAN} biriminin bu ayki talep sayısı",
+    "Hangi ekipte en çok bekleyen ticket var",
+    "Kritik önceliğe sahip açık talepleri listele",
+    "Bu ay en çok arıza bildiren departman hangisi",
+    "{YAZILIM} ile ilgili kaç talep açıldı",
+]
+TEMPLATES["other"] += [
+    "Mutfaktaki buzdolabı soğutmuyor",
+    "İzin talebimi nereden girerim",
+    "Ofise kargo nereye bırakılıyor",
+    "Toplantı salonunun kliması çalışmıyor",
+    "Servis aracı kaçta kalkıyor",
+    "Merhaba, iyi günler",
+    "Görüşürüz, teşekkürler",
+]
+TEMPLATE_IDS = {intent: [f"{intent}:{i}" for i in range(len(t))] for intent, t in TEMPLATES.items()}
+
 JOINERS = [", ayrıca ", ". Bir de ", " ve ", ". Ek olarak "]
 ABBREVIATIONS = {"bilgisayar": "pc", "şifre": "sifre", "lütfen": "lutfen",
                  "değil": "degil", "çalışmıyor": "calismiyor"}
@@ -201,8 +355,10 @@ def sample(rng: random.Random, multi_ratio: float) -> dict:
     issue_intents = [i for i in TEMPLATES if i not in ("other", "report_request", "ticket_status")]
     if rng.random() < multi_ratio:
         first, second = rng.sample(issue_intents, 2)
-        t1, e1 = fill(rng.choice(TEMPLATES[first]), rng)
-        t2, e2 = fill(rng.choice(TEMPLATES[second]), rng)
+        i1, i2 = rng.randrange(len(TEMPLATES[first])), rng.randrange(len(TEMPLATES[second]))
+        t1, e1 = fill(TEMPLATES[first][i1], rng)
+        t2, e2 = fill(TEMPLATES[second][i2], rng)
+        templates = [f"{first}:{i1}", f"{second}:{i2}"]
         joiner = rng.choice(JOINERS)
         t2 = t2[0].lower() + t2[1:] if joiner.startswith((",", " ")) and \
             not any(e["start"] == 0 for e in e2) else t2
@@ -212,8 +368,10 @@ def sample(rng: random.Random, multi_ratio: float) -> dict:
         intents = [first, second]
     else:
         intent = rng.choice(list(TEMPLATES))
-        text, entities = fill(rng.choice(TEMPLATES[intent]), rng)
+        idx = rng.randrange(len(TEMPLATES[intent]))
+        text, entities = fill(TEMPLATES[intent][idx], rng)
         intents = [intent]
+        templates = [f"{intent}:{idx}"]
     prefix, suffix = rng.choice(PREFIXES), rng.choice(SUFFIXES)
     if prefix and not any(e["start"] == 0 for e in entities):
         text = text[0].lower() + text[1:]
@@ -221,15 +379,24 @@ def sample(rng: random.Random, multi_ratio: float) -> dict:
     entities = [{**e, "start": e["start"] + len(prefix), "end": e["end"] + len(prefix)}
                 for e in entities]
     text, entities = augment(text, entities, rng)
-    return {"text": text, "intents": intents, "entities": entities, "source": "template",
-            "verified": False}
+    return {"text": text, "intents": intents, "entities": entities, "templates": templates,
+            "source": "template", "verified": False}
 
 
-def llm_paraphrase(rows: list[dict], share: float, rng: random.Random) -> list[dict]:
+def make_llm(provider: str, model: str | None):
+    if provider == "ollama":
+        from langchain_ollama import ChatOllama
+
+        return ChatOllama(model=model or "qwen2.5:7b", temperature=0.9,
+                          base_url=os.environ.get("OLLAMA_URL", "http://localhost:11434"))
     from langchain_openai import ChatOpenAI
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.9)
-    out = []
+    return ChatOpenAI(model=model or "gpt-4o-mini", temperature=0.9)
+
+
+def llm_paraphrase(rows: list[dict], share: float, rng: random.Random, llm) -> list[dict]:
+    """Paraphrase a share of the rows; entity strings must survive or the row is kept as is."""
+    out, done = [], 0
     for row in rows:
         if rng.random() >= share:
             out.append(row)
@@ -247,6 +414,9 @@ def llm_paraphrase(rows: list[dict], share: float, rng: random.Random) -> list[d
                 break
             entities.append({**ent, "start": idx, "end": idx + len(value)})
         out.append({**row, "text": text, "entities": entities, "source": "llm"} if ok else row)
+        done += 1
+        if done % 100 == 0:
+            print(f"  paraphrased {done}", file=sys.stderr)
     return out
 
 
@@ -255,6 +425,8 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=3000)
     parser.add_argument("--multi", type=float, default=0.2, help="share of multi-intent samples")
     parser.add_argument("--llm", type=float, default=0.0, help="share paraphrased by an LLM")
+    parser.add_argument("--provider", choices=["openai", "ollama"], default="openai")
+    parser.add_argument("--model", default=None, help="LLM model name for --llm")
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--out", default=str(Path(__file__).parent / "raw.jsonl"))
     args = parser.parse_args()
@@ -269,7 +441,7 @@ def main() -> None:
         if len(rows) == args.n:
             break
     if args.llm > 0:
-        rows = llm_paraphrase(rows, args.llm, rng)
+        rows = llm_paraphrase(rows, args.llm, rng, make_llm(args.provider, args.model))
     for i, row in enumerate(rows):
         row["id"] = f"s{i:05d}"
     write_jsonl(args.out, rows)
