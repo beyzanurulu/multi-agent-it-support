@@ -26,7 +26,7 @@ def fetch(url: str, dest: Path, force: bool = False) -> bool:
         print(f"model already present in {dest}")
         return True
     try:
-        with urllib.request.urlopen(url, timeout=120) as resp:  # noqa: S310 - fixed https URL
+        with urllib.request.urlopen(url, timeout=120) as resp:
             data = resp.read()
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
