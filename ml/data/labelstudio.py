@@ -45,7 +45,7 @@ def from_task(task: dict) -> dict | None:
             entities.append({"start": v["start"], "end": v["end"], "label": v["labels"][0]})
     return {"id": task["data"]["id"], "text": task["data"]["text"], "intents": intents,
             "entities": entities, "templates": task["data"].get("templates", []),
-            "source": "label_studio", "verified": True}
+            "source": "label_studio", "verified": True, "verified_by": "human"}
 
 
 def main() -> None:

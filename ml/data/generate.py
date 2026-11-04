@@ -289,6 +289,59 @@ TEMPLATES["other"] += [
     "Merhaba, iyi günler",
     "Görüşürüz, teşekkürler",
 ]
+# Slot values must make sense in context ("Office sürekli kopuyor" is not a VPN issue,
+# "kulaklık fanı" does not exist). Intent-level lists apply to every template of the intent;
+# template-level lists override them. clean.py drops rows that violate these.
+VPN_SOFTWARE = ["VPN", "GlobalProtect", "AnyDesk"]
+MAIL_SOFTWARE = ["Outlook", "Outlook Web"]
+COMPUTERS = ["laptop", "bilgisayar", "dizüstü", "masaüstü"]
+INTENT_SLOTS: dict[str, dict[str, list[str]]] = {
+    "vpn_issue": {"YAZILIM": VPN_SOFTWARE,
+                  "HATA_KODU": ["809", "691", "800", "720", "ERR_CERT_AUTHORITY_INVALID",
+                                "ERR_CONNECTION_TIMED_OUT"],
+                  "CIHAZ": COMPUTERS + ["telefon", "tablet"]},
+    "email_issue": {"YAZILIM": MAIL_SOFTWARE,
+                    "HATA_KODU": ["0x800CCC0E", "0x8004010F", "0x80070005"],
+                    "CIHAZ": COMPUTERS + ["telefon", "tablet"]},
+    "software_install": {"HATA_KODU": ["0x80070643", "0x80070057", "0x80004005", "0xC004F074"],
+                         "CIHAZ": COMPUTERS + ["tablet"]},
+    "printer_issue": {"HATA_KODU": ["0x0000011b", "0x0000007E", "0x80070005"],
+                      "CIHAZ": COMPUTERS},
+    "network_issue": {"HATA_KODU": ["ERR_CONNECTION_TIMED_OUT", "ERR_CERT_AUTHORITY_INVALID"]},
+    "hardware_issue": {"HATA_KODU": ["0x0000007E"]},
+    "password_reset": {"CIHAZ": COMPUTERS + ["telefon", "tablet"]},
+    "account_locked": {"CIHAZ": COMPUTERS + ["telefon", "tablet"]},
+}
+TEMPLATE_SLOTS: dict[str, dict[str, list[str]]] = {
+    "{CIHAZ} şarj olmuyor": {"CIHAZ": COMPUTERS + ["telefon", "tablet", "kulaklık", "mouse",
+                                                   "klavye"]},
+    "{CIHAZ} ses vermiyor": {"CIHAZ": COMPUTERS + ["kulaklık", "telefon", "tablet",
+                                                   "projektör"]},
+    "{CIHAZ} kendi kendine yeniden başlıyor": {"CIHAZ": COMPUTERS + ["telefon", "tablet"]},
+    "{CIHAZ} mavi ekran veriyor, {HATA_KODU}": {"CIHAZ": COMPUTERS},
+    "{CIHAZ} ekranında çizgiler var": {"CIHAZ": COMPUTERS + ["monitör", "ikinci ekran",
+                                                             "tablet", "telefon"]},
+    "{CIHAZ} fanı çok ses yapıyor": {"CIHAZ": COMPUTERS + ["projektör"]},
+    "{CIHAZ} USB girişleri çalışmıyor": {"CIHAZ": COMPUTERS + ["dock", "docking station"]},
+    "{CIHAZ} görüntü vermiyor": {"CIHAZ": ["monitör", "ikinci ekran", "projektör", "laptop",
+                                           "dizüstü", "bilgisayar", "masaüstü", "tablet"]},
+    "{CIHAZ} tuşları basmıyor": {"CIHAZ": ["klavye", "laptop", "dizüstü"]},
+    "{CIHAZ} çok ısınıyor ve kapanıyor": {"CIHAZ": COMPUTERS + ["projektör", "tablet",
+                                                                "telefon"]},
+    "{CIHAZ} üzerine yazılım kurma yetkim yok": {"CIHAZ": COMPUTERS},
+    "{YAZILIM} hesabım kilitlenmiş": {"YAZILIM": ["SAP", "Jira", "Slack", "Teams", "Outlook",
+                                                  "VPN", "Logo Tiger", "Netsis", "Power BI"]},
+    "Kullanıcım kilitli görünüyor, {YAZILIM} açılmıyor": {"YAZILIM": ["Outlook", "Teams", "SAP",
+                                                                     "Jira", "Netsis"]},
+}
+
+
+def slot_values(intent: str, template: str, slot: str) -> list[str]:
+    return (TEMPLATE_SLOTS.get(template, {}).get(slot)
+            or INTENT_SLOTS.get(intent, {}).get(slot)
+            or VALUES[slot])
+
+
 TEMPLATE_IDS = {intent: [f"{intent}:{i}" for i in range(len(t))] for intent, t in TEMPLATES.items()}
 
 JOINERS = [", ayrıca ", ". Bir de ", " ve ", ". Ek olarak "]
@@ -299,12 +352,13 @@ ENGLISH = {"açılmıyor": "not working", "bağlanmıyor": "connect olmuyor",
 DEASCII = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
 
 
-def fill(template: str, rng: random.Random) -> tuple[str, list[dict]]:
+def fill(template: str, rng: random.Random, intent: str = "") -> tuple[str, list[dict]]:
+    raw_template = template
     template = template.replace("{NUM}", str(rng.randint(10001, 10999)))
     text, entities, pos = "", [], 0
     for match in re.finditer(r"\{(\w+)\}", template):
         text += template[pos:match.start()]
-        value = rng.choice(VALUES[match.group(1)])
+        value = rng.choice(slot_values(intent, raw_template, match.group(1)))
         entities.append({"start": len(text), "end": len(text) + len(value),
                          "label": match.group(1)})
         text += value
@@ -356,8 +410,8 @@ def sample(rng: random.Random, multi_ratio: float) -> dict:
     if rng.random() < multi_ratio:
         first, second = rng.sample(issue_intents, 2)
         i1, i2 = rng.randrange(len(TEMPLATES[first])), rng.randrange(len(TEMPLATES[second]))
-        t1, e1 = fill(TEMPLATES[first][i1], rng)
-        t2, e2 = fill(TEMPLATES[second][i2], rng)
+        t1, e1 = fill(TEMPLATES[first][i1], rng, first)
+        t2, e2 = fill(TEMPLATES[second][i2], rng, second)
         templates = [f"{first}:{i1}", f"{second}:{i2}"]
         joiner = rng.choice(JOINERS)
         t2 = t2[0].lower() + t2[1:] if joiner.startswith((",", " ")) and \
@@ -369,7 +423,7 @@ def sample(rng: random.Random, multi_ratio: float) -> dict:
     else:
         intent = rng.choice(list(TEMPLATES))
         idx = rng.randrange(len(TEMPLATES[intent]))
-        text, entities = fill(TEMPLATES[intent][idx], rng)
+        text, entities = fill(TEMPLATES[intent][idx], rng, intent)
         intents = [intent]
         templates = [f"{intent}:{idx}"]
     prefix, suffix = rng.choice(PREFIXES), rng.choice(SUFFIXES)

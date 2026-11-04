@@ -1,37 +1,39 @@
 # Veri kalitesi raporu
 
-- Örnek: 2996
-- Doğrulanmış: 0
-- Çoklu niyet: 630
-- Farklı şablon: 189
-- LLM ile yeniden ifade edilmiş: 1344
-- Atılan: {'invalid': 4}
+- Örnek: 2349
+- Doğrulanmış: 437
+- Çoklu niyet: 401
+- Farklı şablon: 187
+- LLM ile yeniden ifade edilmiş: 930
+- Atılan: {}
+- LLM sohbet artığından temizlenen: 1
+- Gazetteer ile eksik entity eklenen: 399
 
 ## Intent dağılımı
 
 | Intent | n | % |
 |---|---|---|
-| password_reset | 338 | 9.3 |
-| vpn_issue | 353 | 9.7 |
-| email_issue | 325 | 9.0 |
-| software_install | 359 | 9.9 |
-| hardware_issue | 351 | 9.7 |
-| network_issue | 339 | 9.3 |
-| access_request | 331 | 9.1 |
-| printer_issue | 333 | 9.2 |
-| account_locked | 316 | 8.7 |
-| ticket_status | 201 | 5.5 |
-| report_request | 199 | 5.5 |
-| other | 181 | 5.0 |
+| password_reset | 276 | 10.0 |
+| vpn_issue | 214 | 7.8 |
+| email_issue | 214 | 7.8 |
+| software_install | 254 | 9.2 |
+| hardware_issue | 211 | 7.7 |
+| network_issue | 282 | 10.3 |
+| access_request | 277 | 10.1 |
+| printer_issue | 229 | 8.3 |
+| account_locked | 248 | 9.0 |
+| ticket_status | 192 | 7.0 |
+| report_request | 189 | 6.9 |
+| other | 164 | 6.0 |
 
 ## Entity dağılımı
 
 | Entity | n |
 |---|---|
-| YAZILIM | 666 |
-| CIHAZ | 551 |
-| HATA_KODU | 256 |
-| DEPARTMAN | 290 |
-| KISI | 183 |
-| IP_ADRESI | 124 |
-| TARIH | 340 |
+| YAZILIM | 702 |
+| CIHAZ | 469 |
+| HATA_KODU | 66 |
+| DEPARTMAN | 246 |
+| KISI | 156 |
+| IP_ADRESI | 110 |
+| TARIH | 307 |
